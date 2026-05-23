@@ -884,6 +884,77 @@ const API = (() => {
         return item ? ytItemToVideo(item, 1) : null;
       } catch(e){ toast('YouTube API 오류: '+e.message); return null; }
     },
+    /* ── 공통 AI 호출 헬퍼 ── */
+    async _ai(sysPrompt, userPrompt){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      try {
+        const txt = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content: sysPrompt },
+          { role:'user',   content: userPrompt }
+        ]);
+        const m = txt.match(/\{[\s\S]*\}/);
+        if (!m) throw new Error('JSON 형식 응답 없음');
+        return JSON.parse(m[0]);
+      } catch(e){ toast('AI 오류: '+e.message); return null; }
+    },
+
+    async aiHomeBriefing(topVideos, regionName){
+      const titles = topVideos.slice(0,6).map((v,i)=>`${i+1}. [${v.category.name}] ${v.title} (가능성 ${v.score}점, 조회 ${Gen.viewStr(v.views)})`).join('\n');
+      return this._ai(
+        '유튜브 트렌드 분석 AI. 반드시 유효한 JSON만 출력.',
+        `지금 ${regionName}에서 급상승 중인 유튜브 영상 목록입니다:\n${titles}\n\n이 데이터를 보고 한국어로 답변하세요 (JSON):\n{"briefing":"오늘 트렌드 흐름 2~3문장 (가능성·추정 표현 사용)","highlights":["주목 포인트 1","포인트 2","포인트 3"],"tip":"크리에이터를 위한 오늘의 액션 팁 1문장"}`
+      );
+    },
+
+    async aiCountryInsight(countryName, lang, topVideos, catDist){
+      const titles = topVideos.slice(0,5).map((v,i)=>`${i+1}. [${v.category.name}] ${v.title}`).join('\n');
+      const dist = catDist.slice(0,4).map(([n,v])=>`${n}:${v}건`).join(', ');
+      return this._ai(
+        '유튜브 트렌드 분석 AI. 반드시 유효한 JSON만 출력.',
+        `${countryName}(${lang}) 유튜브 급상승 영상:\n${titles}\n카테고리 분포: ${dist}\n\n이 국가 트렌드 특징 3가지를 한국어로 (JSON):\n{"insights":[{"t":"인사이트 제목","d":"구체적 설명 (가능성·추정 표현)"},{"t":"두 번째","d":"설명"},{"t":"세 번째","d":"설명"}]}`
+      );
+    },
+
+    async aiSuccessReport(video, url){
+      const info = `제목: ${video.title}\n채널: ${video.channel}\n카테고리: ${video.category.name}\n조회수: ${Gen.viewStr(video.views)}\n좋아요: ${Gen.viewStr(video.likes||0)}\n영상 길이: ${Gen.durStr(video.durationSec)}\n게시: ${video.publishedAgoH}시간 전\nCTR 추정: ${video.ctr}%\n유지율 추정: ${video.retention}%`;
+      return this._ai(
+        '유튜브 성공 요인 분석 AI. 반드시 유효한 JSON만 출력.',
+        `다음 영상의 성공 요인을 분석하세요:\n${info}\n\n한국어로 (JSON):\n{"summary":"이 영상이 성공한 이유 2~3문장 (가능성 기반)","factors":[{"t":"성공 요인 제목","d":"구체적 설명","score":80},{"t":"요인 2","d":"설명","score":70},{"t":"요인 3","d":"설명","score":65}],"suggestions":["크리에이터 적용 팁 1","팁 2","팁 3"]}`
+      );
+    },
+
+    async aiAlgoReport(video, factors){
+      const factorStr = factors.slice(0,4).map(f=>`${f.t}: ${f.score}점`).join(', ');
+      const info = `제목: ${video.title}\n카테고리: ${video.category.name}\n조회수: ${Gen.viewStr(video.views)}\nCTR 추정: ${video.ctr}%\n유지율 추정: ${video.retention}%\n알고리즘 신호: ${factorStr}`;
+      return this._ai(
+        '유튜브 알고리즘 전략 AI. 반드시 유효한 JSON만 출력.',
+        `다음 영상의 알고리즘 노출 가능성을 분석하세요:\n${info}\n\n한국어로 (JSON):\n{"summary":"알고리즘 관점 평가 2문장 (추정 기반)","strengths":["강점 신호 1","강점 2"],"weaknesses":["개선 가능 신호 1","개선 포인트 2"],"strategy":"이 영상을 벤치마킹한 콘텐츠 전략 1~2문장"}`
+      );
+    },
+
+    async aiChannelStrategy(ch){
+      const avgViews = ch.videoCount>0 ? Math.round(ch.totalViews/ch.videoCount) : 0;
+      const freq = ch.uploadFreqDays!=null ? `${ch.uploadFreqDays}일마다` : '불규칙';
+      const cats = (ch.cats||[]).slice(0,3).map(([n,p])=>`${n}(${p}%)`).join(', ');
+      const info = `채널명: ${ch.name}\n구독자: ${Gen.viewStr(ch.subs)}\n총 조회: ${Gen.viewStr(ch.totalViews)}\n영상 수: ${ch.videoCount}\n영상당 평균 조회: ${Gen.viewStr(avgViews)}\n업로드 주기: ${freq}\n주요 카테고리: ${cats}`;
+      return this._ai(
+        '유튜브 채널 성장 전략 AI. 반드시 유효한 JSON만 출력.',
+        `다음 채널 데이터를 분석하고 성장 전략을 제시하세요:\n${info}\n\n한국어로 (JSON):\n{"evaluation":"채널 현황 평가 2문장 (가능성 기반)","strategies":[{"t":"전략 제목 1","d":"구체적 행동 가이드"},{"t":"전략 2","d":"설명"},{"t":"전략 3","d":"설명"}],"contentPlan":["추천 콘텐츠 방향 1","방향 2","방향 3"]}`
+      );
+    },
+
+    async aiChannelCompare(channels){
+      const chStr = channels.map((ch,i)=>{
+        const avg = ch.videoCount>0?Math.round(ch.totalViews/ch.videoCount):0;
+        return `채널${i+1}(${ch.name}): 구독자 ${Gen.viewStr(ch.subs)}, 평균조회 ${Gen.viewStr(avg)}, 업로드 ${ch.uploadFreqDays!=null?ch.uploadFreqDays+'일마다':'불규칙'}, 주력 ${ch.cats[0]?.[0]||'?'}`;
+      }).join('\n');
+      return this._ai(
+        '유튜브 채널 비교 분석 AI. 반드시 유효한 JSON만 출력.',
+        `다음 채널들을 비교 분석하세요:\n${chStr}\n\n한국어로 (JSON):\n{"summary":"채널 간 핵심 차이 2~3문장 (가능성 기반)","advantages":[{"channel":"채널명","point":"이 채널의 강점 한 문장"}],"recommendation":"크리에이터 관점 종합 조언 2문장"}`
+      );
+    },
+
     async aiInsight(keyword, data){
       const cfg = SettingsCfg.load();
       if (!cfg.aiApiKey) return null;
@@ -1571,6 +1642,8 @@ async function renderHome(){
       ${statCard('평균 CTR 추정', s.avgCtr + '%', '카테고리 가중 평균')}
     </div>
 
+    ${aiSectionSkeleton('aiHome')}
+
     <div class="grid-2">
       <div class="card">
         <div class="card__hd">
@@ -1636,6 +1709,14 @@ async function renderHome(){
   main.querySelectorAll('[data-kw]').forEach(el => el.addEventListener('click', () => App.analyzeAndShow(el.dataset.kw)));
   main.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => App.go(b.dataset.nav)));
   main.querySelectorAll('[data-region]').forEach(el => el.addEventListener('click', () => { App.setRegion(el.dataset.region); App.go('countryDetail', el.dataset.region); }));
+
+  // AI 홈 브리핑 비동기 로드
+  if (SettingsCfg.load().aiApiKey){
+    document.getElementById('aiHome').style.display = '';
+    API.aiHomeBriefing(s.top, regionName).then(d =>
+      aiSectionShow('aiHome', '오늘의 AI 트렌드 브리핑', aiHomeBriefingHtml(d))
+    );
+  }
 }
 
 function statCard(label, value, meta){
@@ -1788,14 +1869,16 @@ async function renderCountryDetail(){
             `).join('')}
           </div>
         </div>
-        <div class="card">
-          <div class="card__hd"><h3>이 국가의 특징</h3><span class="muted">가능성 기반 관측</span></div>
-          <div class="insight-list">
-            ${[
-              { t:`${c?c.name:code} 시청자는 ${dist[0]?.[0]||'엔터'} 영상 노출이 가장 활발한 것으로 추정됩니다.`, d:'카테고리 기반 정렬 결과이며 시즌·이벤트에 따라 변동 가능성이 큽니다.' },
-              { t:'언어 다양성을 고려한 자막 전략이 유효해 보입니다.', d:`${c?c.lang:'현지어'} 외에 영어 자막을 함께 제공하는 채널의 노출 가능성이 더 높게 관측됩니다.` },
-              { t:'현지 시간 저녁대 업로드가 안정적이라는 관측', d:'발행 직후 4시간 CTR이 알고리즘 신호로 작용할 가능성이 큽니다.' }
-            ].map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${it.t}</div><div class="insight__d">${it.d}</div></div></div>`).join('')}
+        <div id="ctryAiCard" class="ai-section" style="display:none">
+          <div class="ai-section__hd">
+            <span class="ai-badge">✦ AI</span>
+            <span class="ai-section__t">${c?c.name:code} 트렌드 인사이트</span>
+            <span class="ai-section__sub">OpenAI GPT-4o mini</span>
+          </div>
+          <div id="ctryAiBody">
+            <div class="skeleton" style="height:60px;border-radius:10px;margin-bottom:10px"></div>
+            <div class="skeleton" style="height:60px;border-radius:10px;margin-bottom:10px"></div>
+            <div class="skeleton" style="height:60px;border-radius:10px"></div>
           </div>
         </div>
       </div>
@@ -1803,6 +1886,15 @@ async function renderCountryDetail(){
   `;
   main.querySelectorAll('.vid-row').forEach(r => r.addEventListener('click', () => App.analyzeAndShow(r.dataset.kw)));
   main.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => App.go(b.dataset.nav)));
+
+  // AI 국가 인사이트 비동기 로드
+  if (SettingsCfg.load().aiApiKey){
+    document.getElementById('ctryAiCard').style.display = '';
+    API.aiCountryInsight(c?c.name:code, c?c.lang:'', rows.slice(0,5), dist).then(d => {
+      const body = document.getElementById('ctryAiBody');
+      if (body) body.innerHTML = aiCountryInsightHtml(d);
+    });
+  }
 }
 
 /* ── ANALYSIS ── */
@@ -2227,7 +2319,15 @@ async function renderSuccess(){
     el.innerHTML = '<div class="skeleton" style="height:280px;margin-top:14px;border-radius:12px;border:1px solid var(--line)"></div>';
     const ytId = parseYtId(url);
     const rv = ytId ? await API.videoById(ytId) : null;
-    el.innerHTML = renderUrlSuccessReport(genUrlSuccessReport(url, rv), url);
+    const reportData = genUrlSuccessReport(url, rv);
+    el.innerHTML = renderUrlSuccessReport(reportData, url) +
+      (SettingsCfg.load().aiApiKey ? aiSectionSkeleton('successAi') : '');
+    if (SettingsCfg.load().aiApiKey && rv){
+      document.getElementById('successAi').style.display = '';
+      API.aiSuccessReport(rv, url).then(d =>
+        aiSectionShow('successAi', 'AI 성공 요인 해석', aiSuccessReportHtml(d))
+      );
+    }
   });
 }
 
@@ -2283,7 +2383,15 @@ async function renderAlgorithm(){
     el.innerHTML = '<div class="skeleton" style="height:280px;margin-top:14px;border-radius:12px;border:1px solid var(--line)"></div>';
     const ytId = parseYtId(url);
     const rv = ytId ? await API.videoById(ytId) : null;
-    el.innerHTML = renderUrlAlgoReport(genUrlAlgoReport(url, rv), url);
+    const algoData = genUrlAlgoReport(url, rv);
+    el.innerHTML = renderUrlAlgoReport(algoData, url) +
+      (SettingsCfg.load().aiApiKey ? aiSectionSkeleton('algoAi') : '');
+    if (SettingsCfg.load().aiApiKey && rv){
+      document.getElementById('algoAi').style.display = '';
+      API.aiAlgoReport(rv, algoData.algoFactors||[]).then(d =>
+        aiSectionShow('algoAi', 'AI 알고리즘 전략 분석', aiAlgoReportHtml(d))
+      );
+    }
   });
 }
 function treemap(factors){
@@ -2378,6 +2486,17 @@ function renderChannel(){
     el.querySelectorAll('.vid-card').forEach(card => {
       card.addEventListener('click', () => { const kw=card.dataset.kw; if(kw) App.analyzeAndShow(kw); });
     });
+    _triggerChAi(preloaded);
+  }
+
+  function _triggerChAi(ch){
+    if (SettingsCfg.load().aiApiKey){
+      const sec = document.getElementById('chAi');
+      if (sec) sec.style.display = '';
+      API.aiChannelStrategy(ch).then(d =>
+        aiSectionShow('chAi', `${ch.name} AI 성장 전략`, aiChannelStrategyHtml(d))
+      );
+    }
   }
 
   document.getElementById('chForm').addEventListener('submit', async e => {
@@ -2395,6 +2514,7 @@ function renderChannel(){
         if (kw) App.analyzeAndShow(kw);
       });
     });
+    _triggerChAi(ch);
   });
 }
 
@@ -2485,6 +2605,8 @@ function renderChannelDetail(ch){
       </div>
     </div>
 
+    ${aiSectionSkeleton('chAi')}
+
     ${ch.videos.length ? `
     <div class="card">
       <div class="card__hd"><h3>최근 인기 영상 TOP ${ch.videos.length}</h3><span class="muted">업로드 순 · 클릭하면 키워드 분석</span></div>
@@ -2563,6 +2685,13 @@ function renderCompare(){
     const channels = results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
     if (channels.length < 2){ el.innerHTML = '<div class="empty"><h4>채널 데이터를 불러오지 못했습니다</h4><p>URL 형식 또는 API 설정을 확인해주세요.</p></div>'; return; }
     el.innerHTML = renderCompareDetail(channels);
+    if (SettingsCfg.load().aiApiKey){
+      const sec = document.getElementById('cmpAi');
+      if (sec) sec.style.display = '';
+      API.aiChannelCompare(channels).then(d =>
+        aiSectionShow('cmpAi', 'AI 채널 비교 종합 평가', aiChannelCompareHtml(d))
+      );
+    }
     el.querySelectorAll('[data-ch-detail]').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = +btn.dataset.chDetail;
@@ -2704,6 +2833,8 @@ function renderCompareDetail(channels){
           </div>
         </div>`).join('')}
     </div>
+
+    ${aiSectionSkeleton('cmpAi')}
   `;
 }
 
@@ -3230,6 +3361,117 @@ function renderUrlAlgoReport(d, url){
 }
 
 /* ─────────────── Util ─────────────── */
+/* ─────────────── AI Section Helpers ─────────────── */
+function aiSectionSkeleton(id){
+  return `<div id="${id}" class="ai-section" style="display:none">
+    <div class="ai-section__hd">
+      <span class="ai-badge">✦ AI</span>
+      <span class="ai-section__t" id="${id}Title">AI 인사이트</span>
+      <span class="ai-section__sub">OpenAI GPT-4o mini · 가능성 기반</span>
+    </div>
+    <div id="${id}Body">
+      <div class="skeleton" style="height:60px;border-radius:10px;margin-bottom:12px"></div>
+      <div class="skeleton" style="height:80px;border-radius:10px"></div>
+    </div>
+  </div>`;
+}
+function aiSectionShow(id, title, html){
+  const sec = document.getElementById(id);
+  const body = document.getElementById(id+'Body');
+  const titleEl = document.getElementById(id+'Title');
+  if (!sec || !body) return;
+  if (titleEl) titleEl.textContent = title;
+  sec.style.display = '';
+  body.innerHTML = html;
+}
+function aiSectionHide(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+
+function aiHomeBriefingHtml(d){
+  if (!d) return '<div style="color:var(--ink-3);font-size:13px">AI 브리핑을 불러오지 못했습니다.</div>';
+  return `
+    <div class="ai-summary">${esc(d.briefing||'')}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px">
+      <div style="flex:1;min-width:180px">
+        <div class="ai-col__t" style="margin-bottom:8px">주목 포인트</div>
+        ${(d.highlights||[]).map(h=>`<div class="ai-opp">${esc(h)}</div>`).join('')}
+      </div>
+      <div style="flex:1;min-width:180px;padding:12px 14px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent)">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-ink);margin-bottom:5px">오늘의 크리에이터 팁</div>
+        <div style="font-size:13px;color:var(--accent-ink);line-height:1.6">${esc(d.tip||'')}</div>
+      </div>
+    </div>`;
+}
+function aiCountryInsightHtml(d){
+  if (!d||!d.insights) return '<div style="color:var(--ink-3);font-size:13px">AI 인사이트를 불러오지 못했습니다.</div>';
+  return `<div class="insight-list">${d.insights.map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${esc(it.t||'')}</div><div class="insight__d">${esc(it.d||'')}</div></div></div>`).join('')}</div>`;
+}
+function aiSuccessReportHtml(d){
+  if (!d) return '<div style="color:var(--ink-3);font-size:13px">AI 분석을 불러오지 못했습니다.</div>';
+  return `
+    <div class="ai-summary">${esc(d.summary||'')}</div>
+    <div class="ai-cols" style="margin-top:12px">
+      <div>
+        <div class="ai-col__t">성공 요인 분석</div>
+        ${(d.factors||[]).map(f=>`<div class="ai-idea-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div class="ai-idea-card__t">${esc(f.t||'')}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent)">${f.score||''}점</div>
+          </div>
+          <div class="ai-idea-card__d">${esc(f.d||'')}</div>
+        </div>`).join('')}
+      </div>
+      <div>
+        <div class="ai-col__t">크리에이터 적용 팁</div>
+        ${(d.suggestions||[]).map((s,i)=>`<div class="ai-action"><div class="ai-action__num">${i+1}</div><div>${esc(s)}</div></div>`).join('')}
+      </div>
+    </div>`;
+}
+function aiAlgoReportHtml(d){
+  if (!d) return '<div style="color:var(--ink-3);font-size:13px">AI 분석을 불러오지 못했습니다.</div>';
+  return `
+    <div class="ai-summary">${esc(d.summary||'')}</div>
+    <div class="ai-cols" style="margin-top:12px">
+      <div>
+        <div class="ai-col__t" style="margin-bottom:8px">강점 신호</div>
+        ${(d.strengths||[]).map(s=>`<div class="ai-opp" style="color:oklch(0.35 0.12 155)">${esc(s)}</div>`).join('')}
+        <div class="ai-col__t" style="margin-top:14px;margin-bottom:8px">개선 가능 신호</div>
+        ${(d.weaknesses||[]).map(w=>`<div class="ai-opp" style="color:oklch(0.5 0.15 25)">${esc(w)}</div>`).join('')}
+      </div>
+      <div style="padding:12px 14px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent)">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-ink);margin-bottom:6px">콘텐츠 전략 제안</div>
+        <div style="font-size:13px;color:var(--accent-ink);line-height:1.7">${esc(d.strategy||'')}</div>
+      </div>
+    </div>`;
+}
+function aiChannelStrategyHtml(d){
+  if (!d) return '<div style="color:var(--ink-3);font-size:13px">AI 전략을 불러오지 못했습니다.</div>';
+  return `
+    <div class="ai-summary">${esc(d.evaluation||'')}</div>
+    <div class="ai-cols" style="margin-top:12px">
+      <div>
+        <div class="ai-col__t">성장 전략 3가지</div>
+        ${(d.strategies||[]).map(s=>`<div class="ai-idea-card"><div class="ai-idea-card__t">${esc(s.t||'')}</div><div class="ai-idea-card__d">${esc(s.d||'')}</div></div>`).join('')}
+      </div>
+      <div>
+        <div class="ai-col__t">추천 콘텐츠 방향</div>
+        ${(d.contentPlan||[]).map((p,i)=>`<div class="ai-action"><div class="ai-action__num">${i+1}</div><div>${esc(p)}</div></div>`).join('')}
+      </div>
+    </div>`;
+}
+function aiChannelCompareHtml(d){
+  if (!d) return '<div style="color:var(--ink-3);font-size:13px">AI 비교 분석을 불러오지 못했습니다.</div>';
+  return `
+    <div class="ai-summary">${esc(d.summary||'')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      ${(d.advantages||[]).map(a=>`
+        <div style="flex:1;min-width:160px;padding:10px 12px;border-radius:9px;background:#fff;border:1px solid var(--line)">
+          <div style="font-size:11px;font-weight:700;color:var(--ink-3);margin-bottom:4px">${esc(a.channel||'')}</div>
+          <div style="font-size:12.5px;line-height:1.5">${esc(a.point||'')}</div>
+        </div>`).join('')}
+    </div>
+    ${d.recommendation?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent);font-size:13px;color:var(--accent-ink);line-height:1.7">${esc(d.recommendation)}</div>`:''}`;
+}
+
 function scoreColor(s){ if (s >= 70) return 'var(--ok)'; if (s >= 50) return 'var(--accent)'; if (s >= 35) return 'var(--warn)'; return 'var(--danger)'; }
 function verdict(s){ if (s >= 75) return '강한 상승 가능성'; if (s >= 60) return '상승 신호 누적'; if (s >= 45) return '관망 가능'; return '신호 약함'; }
 function riskLabel(l){ return l==='high'?'주의 가능성':l==='med'?'보통':'낮음'; }
