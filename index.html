@@ -1,0 +1,1968 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SignalMap AI — 유튜브 트렌드 시그널</title>
+<style>
+  /* =========================================================
+     Design tokens (자체 디자인 시스템 — 외부 브랜드 비참조)
+     ========================================================= */
+  :root{
+    --bg:           oklch(0.985 0.004 255);
+    --bg-elev:      #ffffff;
+    --bg-sunken:    oklch(0.965 0.005 255);
+    --line:         oklch(0.92 0.006 255);
+    --line-strong:  oklch(0.86 0.008 255);
+    --ink:          oklch(0.22 0.012 260);
+    --ink-2:        oklch(0.38 0.012 260);
+    --ink-3:        oklch(0.55 0.010 260);
+    --ink-4:        oklch(0.70 0.008 260);
+    --accent:       oklch(0.56 0.16 262);
+    --accent-soft:  oklch(0.94 0.04 262);
+    --accent-ink:   oklch(0.32 0.12 262);
+    --accent-2:     oklch(0.60 0.14 200);
+    --ok:           oklch(0.63 0.12 155);
+    --ok-soft:      oklch(0.94 0.05 155);
+    --warn:         oklch(0.70 0.14 75);
+    --warn-soft:    oklch(0.95 0.06 75);
+    --danger:       oklch(0.60 0.18 25);
+    --danger-soft:  oklch(0.95 0.05 25);
+
+    --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
+    --sb-w: 252px; --hd-h: 64px;
+
+    --shadow-sm: 0 1px 2px rgba(20,24,40,.04), 0 1px 1px rgba(20,24,40,.03);
+    --shadow-md: 0 6px 24px -10px rgba(20,24,40,.12), 0 2px 6px rgba(20,24,40,.04);
+
+    --font: system-ui,-apple-system,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Segoe UI",Roboto,sans-serif;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--font); color:var(--ink); background:var(--bg); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; letter-spacing:-0.005em}
+  button{font-family:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+  input,select,textarea{font-family:inherit;color:inherit}
+  a{color:inherit;text-decoration:none}
+
+  /* App shell */
+  .app{display:grid; grid-template-columns: var(--sb-w) 1fr; grid-template-rows: var(--hd-h) 1fr; grid-template-areas:"sb hd""sb main"; min-height:100vh}
+  .sb{grid-area:sb; background:var(--bg-elev); border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; z-index:30}
+  .sb__brand{display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--line); height:var(--hd-h)}
+  .sb__mark{width:28px; height:28px; border-radius:8px; background: linear-gradient(135deg, var(--accent), oklch(0.45 0.2 285)); position:relative; flex:none}
+  .sb__mark::after{content:""; position:absolute; inset:6px; border-radius:3px; background:radial-gradient(circle at 30% 30%, #fff 0 1.5px, transparent 2px),radial-gradient(circle at 70% 60%, #fff 0 1.5px, transparent 2px),radial-gradient(circle at 50% 80%, #fff 0 1.5px, transparent 2px)}
+  .sb__title{font-weight:650; font-size:14.5px; letter-spacing:-0.01em}
+  .sb__sub{font-size:11px; color:var(--ink-3); margin-top:1px}
+  .sb__nav{padding:14px 12px; display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto}
+  .sb__group{font-size:10.5px; font-weight:600; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; padding:14px 10px 6px}
+  .nav__item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--r-sm); color:var(--ink-2); font-size:13.5px; font-weight:500; cursor:pointer; transition: background .12s ease, color .12s ease}
+  .nav__item:hover{background:var(--bg-sunken); color:var(--ink)}
+  .nav__item.is-active{background:var(--accent-soft); color:var(--accent-ink); font-weight:600}
+  .nav__ic{width:18px; height:18px; flex:none; color:currentColor}
+  .nav__count{margin-left:auto; font-size:11px; color:var(--ink-4); font-variant-numeric:tabular-nums}
+  .nav__item.is-active .nav__count{color:var(--accent-ink)}
+  .nav__badge{margin-left:auto; font-size:10px; padding:2px 6px; border-radius:99px; background:var(--warn-soft); color:oklch(0.42 0.13 75); font-weight:700}
+  .sb__foot{padding:14px; border-top:1px solid var(--line); display:flex; align-items:center; gap:10px}
+  .avatar{width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg, oklch(0.7 0.12 200), oklch(0.55 0.16 262)); color:#fff; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none}
+  .sb__user{font-size:12.5px; font-weight:600}
+  .sb__plan{font-size:11px; color:var(--ink-3)}
+
+  /* Header */
+  .hd{grid-area:hd; background:var(--bg-elev); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; padding:0 24px; position:sticky; top:0; z-index:20; height:var(--hd-h)}
+  .hd__burger{display:none}
+  .hd__search{flex:1; max-width:640px; position:relative}
+  .hd__search input{width:100%; height:40px; background:var(--bg-sunken); border:1px solid transparent; border-radius:10px; padding:0 12px 0 38px; font-size:13.5px; outline:none; transition: background .12s, border-color .12s, box-shadow .12s}
+  .hd__search input::placeholder{color:var(--ink-4)}
+  .hd__search input:focus{background:#fff; border-color:var(--accent); box-shadow: 0 0 0 4px var(--accent-soft)}
+  .hd__search .hd__ic{position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--ink-4)}
+  .hd__kbd{position:absolute; right:10px; top:50%; transform:translateY(-50%); font-family:var(--mono); font-size:10.5px; color:var(--ink-3); background:#fff; border:1px solid var(--line); border-radius:4px; padding:2px 6px}
+  .hd__spacer{flex:1}
+  .hd__actions{display:flex; gap:8px; align-items:center}
+  .region-pick{display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; border-radius:10px; background:var(--bg-sunken); color:var(--ink-2); font-size:12.5px; font-weight:600; cursor:pointer}
+  .region-pick:hover{background:var(--bg); outline:1px solid var(--line)}
+  .region-pick .iso{font-family:var(--mono); font-size:10.5px; background:#fff; padding:2px 5px; border-radius:4px; border:1px solid var(--line); color:var(--ink); font-weight:700}
+  .icon-btn{width:38px; height:38px; border-radius:10px; background:var(--bg-sunken); display:flex; align-items:center; justify-content:center; color:var(--ink-2); position:relative}
+  .icon-btn:hover{background:var(--bg); outline:1px solid var(--line)}
+  .icon-btn .dot{position:absolute; top:9px; right:10px; width:7px; height:7px; border-radius:50%; background:var(--danger); border:2px solid var(--bg-elev)}
+
+  /* Main */
+  .main{grid-area:main; padding:28px 32px 64px; max-width:1480px}
+  .page-head{margin-bottom:24px; display:flex; align-items:end; gap:16px; flex-wrap:wrap}
+  .page-head h1{font-size:22px; font-weight:680; margin:0; letter-spacing:-0.015em}
+  .page-head p{margin:4px 0 0; color:var(--ink-3); font-size:13px}
+  .page-head__actions{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+  /* Reusable */
+  .card{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--r-lg); padding:20px}
+  .card--inset{padding:0}
+  .card__hd{display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap}
+  .card__hd h3{margin:0; font-size:14px; font-weight:650}
+  .card__hd .muted{color:var(--ink-3); font-size:12px}
+  .card__hd .right{margin-left:auto; display:flex; align-items:center; gap:8px}
+  .btn{display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px; border-radius:9px; font-size:13px; font-weight:600; background:var(--bg-elev); color:var(--ink-2); border:1px solid var(--line); transition: background .12s, border-color .12s, transform .04s}
+  .btn:hover{background:var(--bg-sunken); color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
+  .btn--primary{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .btn--primary:hover{background:#000; color:#fff}
+  .btn--accent{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn--accent:hover{background:oklch(0.5 0.17 262); color:#fff}
+  .btn--ghost{background:transparent; border-color:transparent}
+  .btn--ghost:hover{background:var(--bg-sunken)}
+  .btn--danger{color:var(--danger); border-color:var(--line)}
+  .btn--danger:hover{background:var(--danger-soft); color:var(--danger); border-color:var(--danger-soft)}
+  .btn--sm{height:30px; padding:0 10px; font-size:12px; border-radius:7px}
+  .chip{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background:var(--bg-sunken); color:var(--ink-2); border:1px solid var(--line)}
+  .chip--accent{background:var(--accent-soft); color:var(--accent-ink); border-color:transparent}
+  .chip--ok{background:var(--ok-soft); color:oklch(0.4 0.13 155); border-color:transparent}
+  .chip--warn{background:var(--warn-soft); color:oklch(0.42 0.13 75); border-color:transparent}
+  .chip--danger{background:var(--danger-soft); color:oklch(0.42 0.16 25); border-color:transparent}
+  .pill{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; font-variant-numeric:tabular-nums}
+  .pill--up{color:oklch(0.4 0.13 155); background:var(--ok-soft)}
+  .pill--down{color:oklch(0.42 0.16 25); background:var(--danger-soft)}
+  .pill--flat{color:var(--ink-3); background:var(--bg-sunken)}
+  .tabs{display:flex; gap:4px; padding:4px; background:var(--bg-sunken); border-radius:10px; align-self:flex-start; max-width:100%; overflow-x:auto; scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:6px 12px; border-radius:7px; font-size:12.5px; font-weight:600; color:var(--ink-3); cursor:pointer; white-space:nowrap}
+  .tab.is-active{background:#fff; color:var(--ink); box-shadow:var(--shadow-sm)}
+
+  /* Stats */
+  .stats{display:grid; gap:14px; grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom:22px}
+  .stat{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--r-lg); padding:18px; position:relative; overflow:hidden}
+  .stat__label{font-size:12px; color:var(--ink-3); font-weight:550}
+  .stat__value{font-size:26px; font-weight:680; margin-top:6px; letter-spacing:-0.02em; font-variant-numeric:tabular-nums}
+  .stat__meta{margin-top:8px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-3)}
+
+  /* Hero */
+  .hero{border:1px solid var(--line); background:radial-gradient(80% 100% at 100% 0%, oklch(0.96 0.04 262) 0%, transparent 60%), linear-gradient(180deg, #fff, var(--bg-elev)); border-radius:var(--r-xl); padding:28px; margin-bottom:22px; position:relative; overflow:hidden}
+  .hero__eyebrow{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:var(--accent-ink); background:#fff; border:1px solid var(--line); padding:4px 10px; border-radius:99px}
+  .hero h2{margin:14px 0 6px; font-size:26px; font-weight:680; letter-spacing:-0.02em; max-width:620px}
+  .hero p{margin:0; color:var(--ink-3); font-size:13.5px; max-width:560px}
+  .hero__form{margin-top:20px; display:flex; gap:8px; max-width:700px}
+  .hero__form input{flex:1; height:48px; border-radius:12px; border:1px solid var(--line); background:#fff; padding:0 16px; font-size:14px; outline:none; transition: border-color .12s, box-shadow .12s}
+  .hero__form input:focus{border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft)}
+  .hero__form button{height:48px; padding:0 22px; border-radius:12px; background:var(--ink); color:#fff; font-weight:650; font-size:13.5px; display:flex; align-items:center; gap:6px}
+  .hero__form button:hover{background:#000}
+  .hero__sugs{margin-top:14px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--ink-3); font-size:12px}
+  .hero__sugs button{font-size:12px; padding:4px 10px; border-radius:99px; background:#fff; border:1px solid var(--line); color:var(--ink-2); font-weight:550}
+  .hero__sugs button:hover{border-color:var(--accent); color:var(--accent-ink)}
+  .hero__deco{position:absolute; right:-40px; top:-40px; width:240px; height:240px; background: conic-gradient(from 200deg, transparent, var(--accent-soft), transparent 60%); border-radius:50%; filter: blur(20px); pointer-events:none; opacity:.7}
+
+  /* Thumb */
+  .thumb{position:relative; width:100%; aspect-ratio: 16/9; border-radius:10px; overflow:hidden; background: linear-gradient(135deg, var(--g1, oklch(0.7 0.12 260)), var(--g2, oklch(0.55 0.16 220)))}
+  .thumb::before{content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 2px, transparent 2px 14px)}
+  .thumb__play{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); display:flex; align-items:center; justify-content:center; color:#fff}
+  .thumb__dur{position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.7); color:#fff; font-size:10.5px; font-variant-numeric:tabular-nums; font-weight:600; padding:2px 6px; border-radius:4px}
+  .thumb__rank{position:absolute; top:8px; left:8px; background:rgba(0,0,0,.7); color:#fff; font-size:10.5px; font-weight:700; font-variant-numeric:tabular-nums; padding:2px 7px; border-radius:99px}
+  .thumb__cat{position:absolute; top:8px; right:8px; background:rgba(255,255,255,.92); color:var(--ink); font-size:10.5px; font-weight:650; padding:2px 7px; border-radius:99px}
+
+  /* Video grid (card 스타일) */
+  .vid-grid{display:grid; gap:16px; grid-template-columns: repeat(auto-fill, minmax(240px,1fr))}
+  .vid-card{
+    display:flex; flex-direction:column; gap:0;
+    background:var(--bg-elev); border:1px solid var(--line);
+    border-radius:var(--r-lg); overflow:hidden;
+    cursor:pointer;
+    transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  }
+  .vid-card:hover{
+    transform: translateY(-2px);
+    border-color:var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+  .vid-card .thumb{border-radius:0}
+  .vid-card__body{padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px}
+  .vid-card__t{font-weight:650; font-size:13.5px; line-height:1.45; text-wrap:pretty; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:39px}
+  .vid-card__ch{font-size:12px; color:var(--ink-3); font-weight:550; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .vid-card__meta{display:flex; gap:6px; align-items:center; font-size:11.5px; color:var(--ink-3); flex-wrap:wrap}
+  .vid-card__metric{font-variant-numeric:tabular-nums; font-weight:600; color:var(--ink-2)}
+  .vid-card__foot{
+    display:flex; align-items:center; gap:6px;
+    padding:10px 14px; border-top:1px solid var(--line);
+    background:var(--bg-sunken);
+    font-size:11px; color:var(--ink-3);
+  }
+  .vid-card__foot b{color:var(--ink); font-variant-numeric:tabular-nums; font-weight:700; font-size:12.5px}
+  .vid-card__score{
+    margin-left:auto;
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 8px; border-radius:99px;
+    background:var(--accent-soft); color:var(--accent-ink);
+    font-size:11px; font-weight:700; font-variant-numeric:tabular-nums;
+  }
+
+  /* Video row (card 스타일) */
+  .vid-list{display:flex; flex-direction:column; gap:10px}
+  .vid-row{
+    display:grid; grid-template-columns: 36px 180px 1fr auto;
+    gap:14px; align-items:center; padding:12px;
+    background:var(--bg-elev); border:1px solid var(--line);
+    border-radius:var(--r-lg);
+    cursor:pointer;
+    transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  }
+  .vid-row:hover{
+    transform: translateY(-1px);
+    border-color:var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+  .vid-row__rk{font-size:14px; font-weight:700; color:var(--ink-3); font-variant-numeric:tabular-nums; text-align:center}
+  .vid-row__rk--top{color:var(--accent-ink)}
+  .vid-row__thumb{width:180px; flex:none}
+  .vid-row__main{min-width:0}
+  .vid-row__t{font-weight:650; font-size:14px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .vid-row__ch{font-size:12px; color:var(--ink-3); margin-top:3px}
+  .vid-row__tags{margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
+  .vid-row__metrics{display:grid; grid-template-columns: repeat(3, minmax(80px,1fr)); gap:14px; text-align:right}
+  .met__l{font-size:10.5px; color:var(--ink-4); font-weight:600; letter-spacing:0.04em; text-transform:uppercase}
+  .met__v{font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px}
+  .met__s{font-size:10.5px; color:var(--ink-3); margin-top:1px}
+
+  /* Country */
+  .ctry-grid{display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))}
+  .ctry-card{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--r-lg); padding:14px; display:flex; flex-direction:column; gap:10px; cursor:pointer; transition: border-color .12s}
+  .ctry-card:hover{border-color:var(--line-strong)}
+  .ctry-card__hd{display:flex; align-items:center; gap:10px}
+  .ctry-iso{width:34px; height:24px; border-radius:5px; background:linear-gradient(135deg, var(--g1), var(--g2)); color:#fff; font-family:var(--mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none; letter-spacing:0.05em}
+  .ctry-card__name{font-weight:650; font-size:13.5px}
+  .ctry-card__lang{font-size:11px; color:var(--ink-3)}
+  .ctry-top{font-size:12px; color:var(--ink-2); font-weight:600; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4; min-height:34px}
+  .ctry-stats{display:flex; gap:14px; padding-top:8px; border-top:1px dashed var(--line); font-size:11.5px; color:var(--ink-3)}
+  .ctry-stats b{display:block; color:var(--ink); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1}
+
+  /* Analysis */
+  .res-head{display:flex; align-items:flex-start; gap:18px; flex-wrap:wrap; padding:24px; border:1px solid var(--line); background:var(--bg-elev); border-radius:var(--r-xl); margin-bottom:18px}
+  .res-head__main{flex:1; min-width:220px}
+  .res-head__kw{font-size:30px; font-weight:700; letter-spacing:-0.02em; margin:6px 0 4px}
+  .res-head__meta{display:flex; gap:8px; flex-wrap:wrap; color:var(--ink-3); font-size:12.5px}
+  .res-head__score{display:flex; align-items:center; gap:18px; padding:8px 18px; border-left:1px solid var(--line)}
+  .gauge{width:96px; height:96px; position:relative; flex:none}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge__val{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; font-variant-numeric:tabular-nums}
+  .gauge__num{font-size:24px; font-weight:700; letter-spacing:-0.02em}
+  .gauge__sub{font-size:10px; color:var(--ink-3); margin-top:-2px}
+  .scores{display:grid; gap:14px; grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom:18px}
+  .score{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--r-lg); padding:18px}
+  .score__hd{display:flex; align-items:center; gap:8px; color:var(--ink-3); font-size:12px; font-weight:550}
+  .score__num{margin-top:8px; font-size:28px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums}
+  .score__bar{margin-top:10px; height:6px; background:var(--bg-sunken); border-radius:99px; overflow:hidden}
+  .score__bar span{display:block; height:100%; border-radius:99px}
+  .score__note{margin-top:8px; font-size:11.5px; color:var(--ink-3)}
+  .grid-2{display:grid; grid-template-columns: 1.6fr 1fr; gap:18px; margin-bottom:18px}
+  .grid-2-eq{display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-bottom:18px}
+  .chart-wrap{position:relative}
+  .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible}
+  .chart-legend{display:flex; gap:14px; font-size:11.5px; color:var(--ink-3); margin-top:6px; flex-wrap:wrap}
+  .chart-legend span{display:inline-flex; align-items:center; gap:6px}
+  .chart-legend i{width:10px; height:2px; border-radius:99px; display:inline-block}
+  .forecast-stats{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:14px}
+  .fc-cell{background:var(--bg-sunken); border-radius:var(--r-md); padding:12px}
+  .fc-cell__h{font-size:11px; color:var(--ink-3); font-weight:550}
+  .fc-cell__v{font-size:18px; font-weight:680; margin-top:2px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums}
+  .fc-cell__r{font-size:11px; color:var(--ink-3); margin-top:2px}
+  .ideas{display:flex; flex-direction:column; gap:10px}
+  .idea{border:1px solid var(--line); border-radius:var(--r-md); padding:14px; background:#fff; display:grid; grid-template-columns: 32px 1fr auto; gap:12px; align-items:flex-start}
+  .idea__ic{width:32px; height:32px; border-radius:9px; background:var(--accent-soft); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px}
+  .idea__t{font-weight:650; font-size:13.5px}
+  .idea__d{color:var(--ink-3); font-size:12.5px; margin-top:3px; line-height:1.55}
+  .idea__tags{margin-top:8px; display:flex; gap:6px; flex-wrap:wrap}
+  .idea__rt{font-size:11px; color:var(--ink-3); white-space:nowrap}
+
+  /* Success */
+  .dist{display:flex; align-items:flex-end; gap:4px; height:120px; padding:8px 0}
+  .dist__bar{flex:1; min-width:0; background:var(--accent-soft); border-radius:5px 5px 2px 2px; position:relative; transition: background .12s}
+  .dist__bar.is-peak{background:var(--accent)}
+  .dist__bar:hover{background:var(--accent-ink)}
+  .dist__axis{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-4); margin-top:6px}
+  .heatmap{display:grid; grid-template-columns: 28px repeat(24, 1fr); gap:2px; font-size:10px}
+  .heatmap__lbl{color:var(--ink-4); font-weight:600; line-height:18px}
+  .heatmap__cell{aspect-ratio:1; border-radius:3px; background:var(--bg-sunken)}
+  .heatmap__hours{display:grid; grid-template-columns: 28px repeat(24, 1fr); gap:2px; font-size:9.5px; color:var(--ink-4); margin-top:4px; font-variant-numeric:tabular-nums}
+  .heatmap__hours span{text-align:center}
+  .insight-list{display:flex; flex-direction:column; gap:10px}
+  .insight{display:flex; align-items:flex-start; gap:12px; padding:14px; border:1px solid var(--line); border-radius:var(--r-md); background:#fff}
+  .insight__num{width:24px; height:24px; border-radius:6px; background:var(--ink); color:#fff; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; font-variant-numeric:tabular-nums}
+  .insight__t{font-weight:650; font-size:13px}
+  .insight__d{color:var(--ink-3); font-size:12.5px; margin-top:3px; line-height:1.55}
+
+  /* Algorithm */
+  .factor{display:grid; grid-template-columns: 1fr auto; gap:8px; padding:14px 0; border-bottom:1px solid var(--line)}
+  .factor:last-child{border-bottom:0}
+  .factor__hd{display:flex; align-items:center; gap:8px}
+  .factor__t{font-weight:650; font-size:13.5px}
+  .factor__w{font-size:11.5px; color:var(--ink-3)}
+  .factor__bar{grid-column: 1 / -1; height:8px; background:var(--bg-sunken); border-radius:99px; overflow:hidden; margin-top:4px; position:relative}
+  .factor__bar > i{display:block; height:100%; background:var(--accent); border-radius:99px}
+  .factor__d{grid-column: 1 / -1; font-size:12px; color:var(--ink-3); margin-top:6px; line-height:1.55}
+  .factor__val{font-variant-numeric:tabular-nums; font-weight:700; font-size:14px}
+
+  /* History */
+  .hist-grid{display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))}
+  .hist-card{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px; display:flex; flex-direction:column; gap:8px; transition: border-color .12s}
+  .hist-card:hover{border-color:var(--line-strong)}
+  .hist-card__hd{display:flex; align-items:center; gap:8px}
+  .hist-card__kw{font-weight:680; font-size:15px; letter-spacing:-0.01em}
+  .hist-card__time{font-size:11px; color:var(--ink-4)}
+  .hist-card__scores{display:grid; grid-template-columns: repeat(4,1fr); gap:6px; margin-top:4px}
+  .hist-card__s{font-size:11px; color:var(--ink-3); text-align:center}
+  .hist-card__s b{display:block; font-size:14px; color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+  .hist-card__act{display:flex; gap:6px; margin-top:auto; padding-top:8px}
+  .empty{text-align:center; padding:48px 20px; color:var(--ink-3); border:1px dashed var(--line); border-radius:var(--r-lg); background:#fff}
+  .empty h4{margin:6px 0 4px; color:var(--ink); font-size:15px}
+  .empty p{margin:0; font-size:12.5px}
+
+  /* Settings */
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:18px}
+  .field__lbl{font-size:12.5px; font-weight:650}
+  .field__hint{font-size:11.5px; color:var(--ink-3)}
+  .field__row{display:flex; gap:8px; align-items:stretch}
+  .field__input{
+    flex:1; height:40px; border-radius:9px; padding:0 12px; font-size:13px;
+    border:1px solid var(--line); background:#fff; outline:none; font-family:var(--mono);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .field__input:focus{border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft)}
+  .field__input.is-saved{background:var(--ok-soft); border-color:transparent}
+  .field__state{font-size:11px; color:var(--ink-3); display:flex; align-items:center; gap:6px}
+  .field__state.is-ok{color:oklch(0.45 0.13 155)}
+  .field__state.is-warn{color:oklch(0.5 0.15 75)}
+  .switch{display:inline-flex; align-items:center; gap:10px; cursor:pointer; padding:8px 0}
+  .switch__track{width:36px; height:20px; background:var(--bg-sunken); border-radius:99px; position:relative; transition:background .15s}
+  .switch__track::after{content:""; position:absolute; left:2px; top:2px; width:16px; height:16px; background:#fff; border-radius:50%; box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .15s}
+  .switch.is-on .switch__track{background:var(--accent)}
+  .switch.is-on .switch__track::after{transform:translateX(16px)}
+  .switch__lbl{font-size:13px; font-weight:600}
+
+  /* Toast & skeleton */
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(10px); background:var(--ink); color:#fff; padding:10px 16px; border-radius:99px; font-size:12.5px; font-weight:600; box-shadow:var(--shadow-md); opacity:0; transition: opacity .15s, transform .2s; z-index:200; pointer-events:none}
+  .toast.is-show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .skeleton{background:linear-gradient(90deg, var(--bg-sunken) 0%, oklch(0.93 0.006 255) 50%, var(--bg-sunken) 100%); background-size:200% 100%; animation: shimmer 1.2s linear infinite; border-radius:8px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* Region menu */
+  .menu{position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow-md); min-width:220px; max-height:340px; overflow:auto; z-index:50; padding:6px; opacity:0; pointer-events:none; transform: translateY(-4px); transition: opacity .12s, transform .12s}
+  .menu.is-open{opacity:1; pointer-events:auto; transform: translateY(0)}
+  .menu__item{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; font-size:13px}
+  .menu__item:hover{background:var(--bg-sunken)}
+  .menu__item.is-active{background:var(--accent-soft); color:var(--accent-ink); font-weight:600}
+
+  /* Category section header (trending grouped) */
+  .cat-sec{margin-bottom:32px}
+  .cat-sec__hd{display:flex; align-items:end; gap:10px; margin-bottom:14px; flex-wrap:wrap}
+  .cat-sec__t{font-size:18px; font-weight:680; letter-spacing:-0.015em; margin:0}
+  .cat-sec__sub{font-size:12px; color:var(--ink-3)}
+  .cat-sec__more{margin-left:auto}
+
+  /* Responsive */
+  @media (max-width: 1100px){
+    .stats{grid-template-columns: repeat(2, 1fr)}
+    .scores{grid-template-columns: repeat(2, 1fr)}
+    .grid-2,.grid-2-eq{grid-template-columns: 1fr}
+    .vid-row{grid-template-columns: 28px 160px 1fr}
+    .vid-row__metrics{display:none}
+  }
+  @media (max-width: 860px){
+    :root{--sb-w: 0px}
+    .app{grid-template-columns: 0 1fr}
+    .sb{position:fixed; left:0; top:0; bottom:0; width:280px; transform:translateX(-100%); transition:transform .22s ease; box-shadow:var(--shadow-md)}
+    .sb.is-open{transform:translateX(0)}
+    .hd__burger{display:flex; width:38px; height:38px; border-radius:10px; background:var(--bg-sunken); align-items:center; justify-content:center}
+    .hd{padding:0 14px; gap:10px}
+    .main{padding:18px 14px 48px}
+    .hd__kbd{display:none}
+    .region-pick span:not(.iso){display:none}
+    .scores{grid-template-columns: 1fr 1fr}
+    .res-head__score{border-left:0; padding-left:0}
+    .page-head h1{font-size:19px}
+    .hero{padding:22px}
+    .hero h2{font-size:21px}
+    .hero__form{flex-direction:column}
+    .hero__form button{width:100%; justify-content:center}
+    .scrim{position:fixed; inset:0; background:rgba(15,18,30,.4); z-index:25; opacity:0; pointer-events:none; transition:opacity .2s}
+    .scrim.is-show{opacity:1; pointer-events:auto}
+    .vid-row{grid-template-columns: 1fr}
+    .vid-row__thumb{width:100%; max-width:none}
+    .vid-row__rk{display:none}
+  }
+  @media (max-width: 480px){
+    .stats{grid-template-columns: 1fr 1fr}
+    .scores{grid-template-columns: 1fr 1fr}
+    .res-head__kw{font-size:24px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sb" id="sb">
+    <div class="sb__brand">
+      <div class="sb__mark" aria-hidden="true"></div>
+      <div>
+        <div class="sb__title">SignalMap AI</div>
+        <div class="sb__sub">유튜브 트렌드 시그널</div>
+      </div>
+    </div>
+    <nav class="sb__nav" id="nav">
+      <div class="sb__group">탐색</div>
+      <div class="nav__item is-active" data-view="home">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        <span>홈 대시보드</span>
+      </div>
+      <div class="nav__item" data-view="trending">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+        <span>급상승 동영상</span>
+      </div>
+      <div class="nav__item" data-view="countries">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+        <span>국가별 트렌드</span>
+      </div>
+
+      <div class="sb__group">분석</div>
+      <div class="nav__item" data-view="analysis">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span>주제/키워드 분석</span>
+      </div>
+      <div class="nav__item" data-view="success">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 4h3v3a3 3 0 0 1-3 3"/><path d="M7 4H4v3a3 3 0 0 0 3 3"/></svg>
+        <span>성공 패턴 분석</span>
+      </div>
+      <div class="nav__item" data-view="algorithm">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>알고리즘 인사이트</span>
+      </div>
+
+      <div class="sb__group">기록</div>
+      <div class="nav__item" data-view="history">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>분석 히스토리</span>
+        <span class="nav__count" id="navHistCount">0</span>
+      </div>
+
+      <div class="sb__group">시스템</div>
+      <div class="nav__item" data-view="settings">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.3 17l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.7 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7 4.3l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        <span>설정</span>
+        <span class="nav__badge" id="navSettingsBadge">데모</span>
+      </div>
+      <div class="nav__item" data-action="reset">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        <span>데이터 초기화</span>
+      </div>
+    </nav>
+    <div class="sb__foot">
+      <div class="avatar">SM</div>
+      <div>
+        <div class="sb__user">분석가 데모</div>
+        <div class="sb__plan">Beta · MVP</div>
+      </div>
+    </div>
+  </aside>
+
+  <header class="hd">
+    <button class="hd__burger icon-btn" id="burger" aria-label="메뉴 열기">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="hd__search">
+      <svg class="hd__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="topSearch" placeholder="주제·채널·키워드로 트렌드 가능성을 분석합니다 (예: 미니멀 캠핑)" autocomplete="off"/>
+      <span class="hd__kbd">↵</span>
+    </div>
+    <div class="hd__spacer"></div>
+    <div class="hd__actions">
+      <div style="position:relative" id="regionWrap">
+        <button class="region-pick" id="regionBtn">
+          <span class="iso" id="regionIso">KR</span>
+          <span id="regionName">한국</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="menu" id="regionMenu"></div>
+      </div>
+      <button class="icon-btn" title="설정" aria-label="설정" id="hdSettings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.3 17l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.7 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7 4.3l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =============================================================
+   SignalMap AI — 유튜브 트렌드 시그널 MVP
+   ──────────────────────────────────────────────────────────────
+   레이어:
+     Store     localStorage (히스토리·국가·API 설정)
+     API       외부 호출 추상 (mock → fetch 교체 지점)
+     Gen       결정론적 더미 데이터 생성기
+     Settings  YouTube/AI API key 저장 + 적용 토글
+     App       라우터·전역 상태
+     Views     화면별 렌더
+   ============================================================= */
+
+/* ───────── Store ───────── */
+const Store = {
+  ns: 'signalmap.v3.',
+  read(k, def){ try{ const v = localStorage.getItem(this.ns+k); return v ? JSON.parse(v) : def; }catch(e){ return def; } },
+  write(k, v){ try{ localStorage.setItem(this.ns+k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ───────── Settings ─────────
+   실제 서비스에서 fetch에 사용할 키를 보관.
+   현재는 mock 단계라 저장 자체만 수행 (네트워크 호출 안 함).
+*/
+const SettingsCfg = {
+  defaults: {
+    youtubeApiKey: '',
+    aiApiKey: '',
+    aiProvider: 'auto', // 'auto'|'openai'|'anthropic'|'gemini'
+    useReal: false
+  },
+  load(){ return { ...this.defaults, ...Store.read('config', {}) }; },
+  save(patch){
+    const next = { ...this.load(), ...patch };
+    Store.write('config', next);
+    document.getElementById('navSettingsBadge').textContent = next.useReal ? '연결' : '데모';
+    document.getElementById('navSettingsBadge').style.background = next.useReal ? 'var(--ok-soft)' : 'var(--warn-soft)';
+    document.getElementById('navSettingsBadge').style.color     = next.useReal ? 'oklch(0.42 0.13 155)' : 'oklch(0.42 0.13 75)';
+    return next;
+  }
+};
+
+/* ───────── API LAYER ─────────
+   메서드 시그니처를 실제 서비스와 동일하게 유지.
+   useReal=true + key 존재 시 실제 호출로 분기 (TODO: fetch 구현 위치 표시).
+*/
+const API = (() => {
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+  // === 실제 API 호출 placeholder ===
+  // 향후 useReal=true + youtubeApiKey 설정 시 이 함수를 fetch 구현으로 교체.
+  // 예: const url = `https://www.googleapis.com/youtube/v3/videos?...&key=${cfg.youtubeApiKey}`
+  //     const r = await fetch(url); const json = await r.json(); ...
+  async function _fetchYouTubeTrending(opts){
+    // placeholder — 실제 구현 시 위 URL 사용
+    return null;
+  }
+  async function _fetchAiInsight(prompt, cfg){
+    // placeholder — provider 분기 후 fetch
+    return null;
+  }
+
+  return {
+    async summary(region){ await wait(80); return Gen.summary(region); },
+    async trending(opts){
+      await wait(160);
+      const cfg = SettingsCfg.load();
+      if (cfg.useReal && cfg.youtubeApiKey){
+        const real = await _fetchYouTubeTrending(opts);
+        if (real) return real;
+      }
+      return Gen.trending(opts);
+    },
+    async trendingByCategory(opts){ await wait(120); return Gen.trendingByCategory(opts); },
+    async countries(){ await wait(60); return Gen.countries(); },
+    async analyze(keyword){
+      await wait(420);
+      const cfg = SettingsCfg.load();
+      if (cfg.useReal && cfg.aiApiKey){
+        const real = await _fetchAiInsight(keyword, cfg);
+        if (real) return real;
+      }
+      return Gen.analysis(keyword.trim());
+    },
+    async relatedVideos(keyword, n){ await wait(120); return Gen.relatedVideos(keyword, n||10); },
+    async success(region){ await wait(140); return Gen.success(region); },
+    async algorithm(){ await wait(120); return Gen.algorithm(); },
+    history: {
+      list(){ return Store.read('history', []); },
+      save(item){
+        const list = Store.read('history', []);
+        if (list[0] && list[0].keyword === item.keyword) return;
+        list.unshift(item);
+        Store.write('history', list.slice(0, 60));
+      },
+      remove(id){ Store.write('history', Store.read('history', []).filter(x => x.id !== id)); },
+      clear(){ Store.write('history', []); }
+    }
+  };
+})();
+
+/* ───────── Generators ───────── */
+const Gen = (() => {
+  function hash(str){
+    let h = 2166136261 >>> 0;
+    for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function rng(seed){
+    let s = seed >>> 0;
+    return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0x100000000; };
+  }
+  const pick = (r, arr) => arr[Math.floor(r()*arr.length)];
+  const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+  const sample = (r, arr, n) => arr.slice().sort(()=>r()-0.5).slice(0,n);
+
+  const COUNTRIES = [
+    { code:'KR', name:'한국', lang:'한국어' },
+    { code:'US', name:'미국', lang:'영어' },
+    { code:'JP', name:'일본', lang:'일본어' },
+    { code:'GB', name:'영국', lang:'영어' },
+    { code:'DE', name:'독일', lang:'독일어' },
+    { code:'FR', name:'프랑스', lang:'프랑스어' },
+    { code:'BR', name:'브라질', lang:'포르투갈어' },
+    { code:'IN', name:'인도', lang:'힌디·영어' },
+    { code:'ID', name:'인도네시아', lang:'인도네시아어' },
+    { code:'MX', name:'멕시코', lang:'스페인어' },
+    { code:'CA', name:'캐나다', lang:'영어·프랑스어' },
+    { code:'AU', name:'호주', lang:'영어' },
+    { code:'ES', name:'스페인', lang:'스페인어' },
+    { code:'IT', name:'이탈리아', lang:'이탈리아어' },
+    { code:'VN', name:'베트남', lang:'베트남어' },
+    { code:'TH', name:'태국', lang:'태국어' },
+  ];
+
+  const CATEGORIES = [
+    { id:'music',  name:'음악' },
+    { id:'game',   name:'게임' },
+    { id:'enter',  name:'엔터테인먼트' },
+    { id:'news',   name:'뉴스' },
+    { id:'edu',    name:'교육' },
+    { id:'tech',   name:'과학·기술' },
+    { id:'sport',  name:'스포츠' },
+    { id:'beauty', name:'뷰티·패션' },
+    { id:'food',   name:'푸드' },
+    { id:'auto',   name:'자동차' },
+    { id:'pet',    name:'반려동물' },
+    { id:'travel', name:'여행' },
+    { id:'vlog',   name:'브이로그' },
+    { id:'finance',name:'경제·재테크' },
+  ];
+
+  const CHANNELS = ['하루기록자','코드와함께','글로벌마켓북','심야토크룸','오늘의플레이트','월간미니멀','심플 사이언스','조용한 시청자','그라운드 비트','픽셀 다이브','어쩌다 일상','자취연구소','서울 셔터','데일리 인사이트','퇴근후 한 잔','조용한 산책','코드 노트북','한 끼 식탁','여행 기록사','문방구 스튜디오','로컬 캠퍼','월급 라이프','책 읽는 밤','홈 카페 일지'];
+
+  const TITLE_TEMPLATES = {
+    food:  [ '하루 한 끼 단백질로 일주일 살아보기', '편의점 5천원 식단 챌린지', '집에서 따라하는 발효 빵 입문', '주말에 한 번에 만드는 도시락 5종', '글로벌 길거리 음식을 집에서 재현해봤다', '에어프라이어로 끝내는 야식 레시피', '아침에 빠르게 만드는 단백질 메뉴 7가지', '비싼 디저트 직접 만들기 도전', '저예산 한 달 식비 정리', '나만의 비밀 양념장 만들기' ],
+    travel:[ '한 번도 안 가본 동네에서 1박 2일', '돈 안 쓰고 서울 야경 코스 정리', '환승 시간 12시간, 도시를 통째로', '대중교통만으로 가본 동해안 마을', '비 오는 날의 작은 항구 산책', '저녁 7시 비행기를 타본 후기', '걸어서만 다녀온 일본 소도시', '북유럽 야간열차 3박 체험', '여행자 한 명도 없던 마을', '주말 당일치기 코스 5선' ],
+    tech:  [ 'AI에게 일주일 동안 코딩 시켜봤다', '로컬에서 돌리는 작은 모델 비교', '취미 개발자를 위한 노트북 추천 기준', '내 노트북으로 가능한 영상 편집 환경', '에이전트 워크플로 입문', '온디바이스 음성인식 직접 만들어보기', '리눅스 데스크톱 한 달 사용기', '오래된 노트북 살려서 서버로', '비전공자도 만들 수 있는 작은 도구', '쓸데없이 만든 자동화의 효용' ],
+    edu:   [ '대학생이 알아두면 좋은 정리법', '한 달 만에 영어 회화가 트인 루틴', '메모를 다시 보고 싶게 만드는 방법', '시험 전날 효율을 두 배로 만드는 공부법', '책을 안 읽던 사람이 책을 사랑하게 된 이유', '강의 노트 다시 보는 법', '집중 못 하던 사람의 자기 실험', '독서 기록을 시작하는 가장 쉬운 방법', '하루 30분 학습 루틴 정리', '시험 없이 영어 실력 점검하는 법' ],
+    finance:['월배당 포트폴리오 1년 운용 결과', '월급 200으로 한 달 살기 도전', '소액으로 시작하는 적립식 전략', '자영업 캐시플로우 만들기', '주식보다 먼저 알아야 할 것 5가지', '연금 점검 셀프 가이드', 'ETF 시작 전 알아야 할 것들', '소비 기록 한 달의 변화', '가계부 앱 비교 후기', '대출 이자 줄이는 작은 습관' ],
+    beauty:[ '저자극 스킨케어 한 달 후기', '여름 메이크업 톤 정리', '머리카락 잘 자라게 만드는 루틴', '향수 5종 데일리 매칭', '저렴이만으로 데일리 셋업', '피부톤별 컬러 찾기', '데일리 헤어 스타일링 정리', '안티 트렌드 메이크업 후기', '미니멀 화장대 정리법', '룩북: 사무실 데일리' ],
+    game:  [ '내가 만든 작은 게임을 친구에게 시켰더니', '인디게임 5종 30분 리뷰', '클래식 게임을 처음 해봤다', '난이도 별 스킬 정리', '협동 게임에 좋은 친구 고르는 법', '한 시간만 한다더니 밤샘 게임', '저사양 컴퓨터에서 도전하기', '실력 늘리는 연습 루틴', '게임으로 영어 공부해보기', '주말에 한 게임씩 정리' ],
+    music: [ '비 오는 밤에 듣기 좋은 플레이리스트', '집중할 때 트는 잔잔한 사운드', '걷기 좋은 BPM 리스트', '나만의 작업용 BGM 셋팅', '운동할 때 텐션 올리는 음악', '한 곡 무한반복하게 만든 사운드', '오래된 음반의 새로운 발견', '잠 잘 오게 만드는 사운드', '카페에서 트는 음악 큐레이션', '드라이브 플레이리스트' ],
+    enter: [ '낯선 사람과 30분 대화 도전', '심야 라디오를 다시 시작했다', '한 달간 SNS 없이 살아본 후기', '랜덤 미션 5개 도전', '예고 없이 시작된 즉흥 여행', '24시간 침묵 챌린지', '동네 사람에게 길 물어보기', '오래된 친구에게 전화 걸기', '하루 종일 한 가지만 하기', '말 없는 식사 도전' ],
+    news:  [ '이번 주 시장 정리: 가능성 시나리오', '주요 정책 변화 한눈에 보기', '경제 지표 다시 읽기', '국제 이슈 요약 브리프', '데이터로 본 이번 주', '오늘의 주요 헤드라인 5분 정리', '시장의 분위기 변화 신호', '글로벌 산업 동향 요약', '소비 트렌드 변화 정리', '정책이 영향을 미칠 분야' ],
+    sport: [ '주말 러닝 코스 정리', '홈 트레이닝 30일 변화', '러닝화 5종 비교', '클라이밍 입문 한 달', '필라테스 첫 수업 후기', '맨몸 운동 루틴 정리', '계단 오르기의 효과', '저녁 30분 산책 챌린지', '러닝 자세 교정 일지', '주말 자전거 코스 추천' ],
+    auto:  [ '전기 이륜차 1개월 통근기', '도심에서 작은 차의 장점', '주말 드라이브 코스 모음', '연비 좋은 운전 습관 정리', '내 차 관리 루틴', '전기차 충전 일상', '오래된 차 관리 방법', '나만의 트렁크 정리법', '드라이브 음악 큐레이션', '주차장 한정 운전 연습' ],
+    pet:   [ '반려견과 함께한 일주일 루틴', '고양이 자동 급식기 한 달 사용기', '강아지 산책 코스 정리', '반려동물 영양제 비교', '동물 병원 가기 전 체크리스트', '입양 첫 주 기록', '집사 일상의 작은 의식', '강아지에게 좋은 간식 만들기', '고양이가 좋아하는 장난감 비교', '반려동물 사진 잘 찍는 법' ],
+    vlog:  [ '아무 일도 없는 평일 저녁', '주말의 작은 의식들', '비 오는 날의 카페', '심야 작업실 풍경', '오래 살던 동네를 천천히 걷기', '혼자 살아서 좋은 점', '반복되는 하루의 작은 변화', '내 책상 다시 정리하기', '집에서 보내는 일요일', '여행에서 돌아온 평일' ],
+  };
+
+  function titleForCat(catId, r){
+    const list = TITLE_TEMPLATES[catId] || TITLE_TEMPLATES.vlog;
+    return pick(r, list);
+  }
+
+  function thumbColors(seed){
+    const r = rng(hash('tc:'+seed));
+    const h1 = Math.floor(r()*360);
+    const h2 = (h1 + 30 + Math.floor(r()*60)) % 360;
+    return { g1: `oklch(0.65 0.16 ${h1})`, g2: `oklch(0.45 0.18 ${h2})` };
+  }
+
+  function durStr(sec){
+    const m = Math.floor(sec/60), s = sec%60;
+    if (m >= 60){ const h = Math.floor(m/60); const mm = m%60; return `${h}:${String(mm).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+    return `${m}:${String(s).padStart(2,'0')}`;
+  }
+  function viewStr(v){
+    if (v >= 1_000_000) return (v/1_000_000).toFixed(1)+'M';
+    if (v >= 1_000) return (v/1_000).toFixed(1)+'K';
+    return String(v);
+  }
+
+  function makeVideo(seed, opts){
+    const r = rng(hash('v:'+seed));
+    const cat = opts.category
+      ? CATEGORIES.find(c=>c.id===opts.category)
+      : pick(r, CATEGORIES);
+    const title = opts.title || titleForCat(cat.id, r);
+    const channel = pick(r, CHANNELS);
+    const views = Math.round(40_000 + r()*5_000_000 * (opts.boost||1));
+    const delta24h = Math.round(views * (0.05 + r()*0.4));
+    const likes = Math.round(views * (0.02 + r()*0.04));
+    const ctr = +(2 + r()*9).toFixed(1);
+    const retention = +(28 + r()*48).toFixed(1);
+    const avd = Math.round(120 + r()*420);
+    const dur = Math.round(180 + r()*1500);
+    const publishedAgo = Math.round(1 + r()*48);
+    const thumb = thumbColors(seed);
+    const score = clamp(Math.round(ctr*4 + retention*0.7 + Math.log10(views)*3 + (delta24h/Math.max(views,1))*40), 30, 99);
+    return {
+      id: 'v_'+hash(seed).toString(36),
+      title, channel, category:cat,
+      views, delta24h, likes, ctr, retention, avd, durationSec:dur,
+      publishedAgoH: publishedAgo, thumb, score
+    };
+  }
+
+  function trending(opts={}){
+    const region = opts.region || 'KR';
+    const cat = opts.category || 'all';
+    const win = opts.window || '24h';
+    const seedBase = `tr:${region}:${cat}:${win}:${new Date().toDateString()}`;
+    const rows = [];
+    const N = 30;
+    for (let i=0;i<N;i++){
+      const boost = 1 + (N-i)/N * 0.7;
+      rows.push(makeVideo(seedBase+':'+i, { category:cat==='all'?null:cat, boost }));
+    }
+    rows.sort((a,b)=> b.score - a.score);
+    return rows.map((v,i)=>({...v, rank:i+1}));
+  }
+
+  /** 분야별 상위 10개씩 (전체 카테고리) */
+  function trendingByCategory(opts={}){
+    const region = opts.region || 'KR';
+    const win = opts.window || '24h';
+    return CATEGORIES.map(c => {
+      const seedBase = `bc:${region}:${c.id}:${win}:${new Date().toDateString()}`;
+      const rows = [];
+      for (let i=0;i<14;i++){
+        const boost = 1 + (14-i)/14 * 0.7;
+        rows.push(makeVideo(seedBase+':'+i, { category:c.id, boost }));
+      }
+      rows.sort((a,b)=>b.score-a.score);
+      return { category:c, videos: rows.slice(0,10).map((v,i)=>({...v, rank:i+1})) };
+    });
+  }
+
+  function summary(region){
+    const t = trending({region, window:'24h'});
+    const top = t.slice(0,8);
+    const r = rng(hash('sm:'+region+':'+new Date().toDateString()));
+    return {
+      totalTracked: 8200 + Math.floor(r()*1800),
+      risingNow:    Math.round(280 + r()*120),
+      topCategory:  pick(r, CATEGORIES).name,
+      avgCtr:       +(4 + r()*3).toFixed(1),
+      top
+    };
+  }
+
+  function countries(){
+    return COUNTRIES.map(c => {
+      const r = rng(hash('c:'+c.code+':'+new Date().toDateString()));
+      const top = trending({region:c.code})[0];
+      const thumb = thumbColors('flag:'+c.code);
+      return { ...c, thumb, topVideo: top, risingCount: 30 + Math.floor(r()*150), hotCategory: pick(r, CATEGORIES).name };
+    });
+  }
+
+  /* ── 키워드 분석 ── */
+  function relatedFor(keyword){
+    const r = rng(hash('rel:'+keyword));
+    return [keyword+' 후기', keyword+' 입문', keyword+' 추천', keyword+' 비교', keyword+' 챌린지', keyword+' 브이로그', keyword+' 루틴', keyword+' 한 달', keyword+' 가격', '대안 '+keyword]
+      .sort(() => r()-0.5).slice(0,6);
+  }
+  function forecast(keyword, baseScore){
+    const r = rng(hash('fc:'+keyword));
+    const past = []; let v = 40 + (baseScore*0.3); const slope = (baseScore - 50) * 0.06;
+    for (let i=0; i<7; i++){ past.push({ t:`-${(6-i)}M`, v: clamp(v + (r()-.5)*6 - i*0.4, 5, 95) }); v += slope*0.4 + (r()-.5)*3; }
+    const fut = []; let mid = v;
+    for (let i=1; i<=6; i++){
+      const drift = slope + (r()-.5)*1.5; mid = clamp(mid + drift, 5, 98);
+      const spread = 4 + i*1.4;
+      fut.push({ t:`+${i}M`, mid, lo:clamp(mid-spread,0,100), hi:clamp(mid+spread,0,100) });
+    }
+    return { past, future: fut };
+  }
+  function ideaSet(keyword, r){
+    const biz = sample(r, [
+      { t:`${keyword} 시리즈 채널 컨셉`, d:`${keyword}를 중심으로 5개 에피소드 시리즈를 설계해 첫 30초 후킹을 통일하면 추천 흐름이 묶여 노출될 가능성이 있습니다.` },
+      { t:`${keyword} 멤버십·구독 묶음`, d:`코어 시청자에게 ${keyword} 자료·아카이브를 정기 묶음으로 제공해 LTV를 끌어올릴 여지가 있습니다.` },
+      { t:`${keyword} 콜라보 시즌`, d:`인접 주제 크리에이터와 시즌제 협업으로 신규 시청자 노출 확장 가능성이 보입니다.` },
+      { t:`${keyword} 데이터 SaaS`, d:`${keyword} 영역의 공개 지표를 정제해 운영자가 쓰는 대시보드로 가공할 가능성이 있습니다.` },
+    ], 3);
+    const content = sample(r, [
+      { t:`'${keyword}' 30초 후킹 5종`, d:`첫 30초에 시청자가 떠나지 않게 만드는 후킹 패턴 A/B 테스트 가능성이 있습니다.`, fmt:'쇼츠 · 롱폼' },
+      { t:`현장 리포트: '${keyword}'를 실제로 써본 사람들`, d:`실사용자 인터뷰 기반 다큐 형식으로 신뢰 자산을 쌓을 여지가 있습니다.`, fmt:'롱폼' },
+      { t:`'${keyword}' 비교 차트`, d:`핵심 옵션 5개를 가격·만족도·접근성 축으로 정리해 캐러셀로도 재활용할 수 있습니다.`, fmt:'카드뉴스' },
+      { t:`AI가 분석한 '${keyword}' 1년`, d:`데이터 시각화 영상. 본 도구 결과를 자산화하는 메타 콘텐츠로 사용할 가능성이 있습니다.`, fmt:'쇼츠 · 롱폼' },
+    ], 3);
+    return { biz, content };
+  }
+  function risksFor(keyword, scores, r){
+    const all = [
+      { l:'high', t:'규제·정책 변동 가능성', d:`${keyword} 영역은 정책 변경 가능성이 있어 채널 정책 위반 위험도 함께 점검할 필요가 있습니다.` },
+      { l:'med',  t:'주제 포화', d:`이미 다수 채널이 진입했을 가능성이 있어 차별점이 약하면 노출 비용이 빠르게 상승할 수 있습니다.` },
+      { l:'low',  t:'단기 화제성 의존', d:`이슈가 짧게 끝날 가능성. 1차 노출 이후 리텐션 설계가 부족하면 빠르게 식을 수 있습니다.` },
+      { l:'med',  t:'타깃 협소', d:`초기 코어 시청자가 분명하지만 확장 폭이 제한적일 수 있어 단계적 페르소나 확장이 필요합니다.` },
+      { l:'low',  t:'시즌성', d:`시청 수요가 특정 시기에 몰릴 가능성이 있어 연간 분포를 미리 점검해두면 좋습니다.` },
+      { l:'high', t:'운영 난이도', d:`제작 품질이 인력·장비 의존도가 높을 수 있어 1인 운영 시 지속성 검토가 필요합니다.` },
+    ];
+    const sorted = all.sort(() => r()-0.5).slice(0,4);
+    if (scores.risk > 70) sorted[0].l = 'high';
+    if (scores.risk < 35) sorted.forEach(x => { if(x.l==='high') x.l='med'; });
+    return sorted;
+  }
+  function analysis(keyword){
+    const r = rng(hash('a:'+keyword));
+    const cat = pick(r, CATEGORIES);
+    const growth   = Math.round(40 + r()*55);
+    const business = Math.round(35 + r()*60);
+    const content  = Math.round(45 + r()*50);
+    const risk     = Math.round(20 + r()*70);
+    const overall  = Math.round(growth*0.35 + business*0.30 + content*0.20 + (100-risk)*0.15);
+    return {
+      id: 'a_'+hash(keyword+Date.now()).toString(36),
+      keyword, category:cat,
+      summary: `'${keyword}'은(는) ${cat.name} 영역에서 ${overall>=70?'강한 상승 신호':overall>=50?'완만한 상승 가능성':'미약하지만 누적 중인 신호'}가 관측됩니다. 단정적 예측이 아닌 가능성 기반 추정이며 실행 전 추가 검증이 필요합니다.`,
+      scores: { overall, growth, business, content, risk },
+      forecast: forecast(keyword, overall),
+      horizons: {},
+      related: relatedFor(keyword),
+      ideas: ideaSet(keyword, r),
+      risks: risksFor(keyword, { risk }, r),
+      createdAt: Date.now()
+    };
+  }
+
+  /** 키워드와 관련된 영상 10개 (분석 페이지 하단용) */
+  function relatedVideos(keyword, n){
+    const r = rng(hash('rv:'+keyword));
+    const out = [];
+    const variations = [
+      `${keyword} 입문 가이드`,
+      `${keyword} 한 달 후기`,
+      `${keyword} 5가지 정리`,
+      `${keyword} 직접 해봤습니다`,
+      `${keyword} 비교 분석`,
+      `${keyword} 챌린지 일주일`,
+      `${keyword} 추천 베스트`,
+      `초보를 위한 ${keyword}`,
+      `${keyword} 흔한 실수 5가지`,
+      `${keyword} 1년 운용 결과`,
+      `${keyword} 알고리즘 노출 분석`,
+      `현장 리포트: ${keyword}`,
+    ];
+    for (let i=0; i<n; i++){
+      out.push(makeVideo('rv:'+keyword+':'+i, {
+        title: variations[i % variations.length],
+        boost: 1 + (n-i)/n * 0.6
+      }));
+    }
+    out.sort((a,b)=>b.score-a.score);
+    return out.map((v,i)=>({...v, rank:i+1}));
+  }
+
+  /* ── 성공 패턴 ── */
+  function success(region){
+    const r = rng(hash('su:'+region));
+    const lenBins = Array.from({length:14}, (_,i) => {
+      const center = 15 + i*5;
+      const dist = Math.abs(center - 38) / 30;
+      const base = Math.max(2, 60 * Math.exp(-dist*dist*2.5));
+      return Math.round(base + (r()-0.5)*10);
+    });
+    const durBins = Array.from({length:12}, (_,i) => {
+      const center = 2.5 + i*2.5;
+      const dist = Math.abs(center - 12) / 12;
+      const base = Math.max(2, 55 * Math.exp(-dist*dist*2));
+      return Math.round(base + (r()-0.5)*8);
+    });
+    const heat = [];
+    for (let d=0; d<7; d++){
+      const row = [];
+      for (let h=0; h<24; h++){
+        const eveningWk = (d<5 && h>=19 && h<=22) ? 30 : 0;
+        const weekendLunch = (d>=5 && h>=11 && h<=14) ? 25 : 0;
+        const weekendNight = (d>=5 && h>=20 && h<=23) ? 28 : 0;
+        const lateNight = (h>=0 && h<=5) ? -10 : 0;
+        const v = Math.max(2, 10 + eveningWk + weekendLunch + weekendNight + lateNight + r()*8);
+        row.push(Math.round(v));
+      }
+      heat.push(row);
+    }
+    const hooks = [
+      { name:'질문형',   share: 22 + Math.round(r()*6) },
+      { name:'도전형',   share: 18 + Math.round(r()*6) },
+      { name:'리스트형', share: 14 + Math.round(r()*6) },
+      { name:'감정형',   share: 16 + Math.round(r()*6) },
+      { name:'스토리형', share: 12 + Math.round(r()*6) },
+      { name:'하우투형', share: 10 + Math.round(r()*6) },
+    ];
+    const thumbs = [
+      { name:'따뜻 톤',   share: 28 + Math.round(r()*6) },
+      { name:'차가운 톤', share: 22 + Math.round(r()*6) },
+      { name:'고대비',    share: 25 + Math.round(r()*6) },
+      { name:'무채색',    share: 13 + Math.round(r()*6) },
+      { name:'인물 클로즈업', share: 14 + Math.round(r()*6) },
+    ];
+    const insights = [
+      { t:'30~45자 사이의 제목이 가장 자주 관측됩니다', d:'너무 짧으면 맥락이 부족해 보일 가능성이, 너무 길면 모바일 환경에서 잘릴 가능성이 있습니다.' },
+      { t:'8~14분 길이의 영상이 안정적인 시청 유지를 보이는 경향', d:'영상 호흡을 한 번에 가져가기 좋은 길이라는 가설이 가능합니다. 카테고리에 따라 차이가 큽니다.' },
+      { t:'평일 19~22시, 주말 정오와 야간이 업로드 적기로 관측', d:'노출 첫 4시간의 클릭률이 알고리즘 신호로 작용할 가능성이 큽니다.' },
+      { t:'썸네일에 1개 인물 클로즈업이 포함되면 CTR 가능성이 평균보다 높게 관측', d:'다만 카테고리에 따라 반대 결과가 나오기도 하므로 자기 채널 데이터로 검증이 필요합니다.' },
+      { t:'질문형 제목이 도전형 다음으로 자주 사용', d:'시청자에게 답을 찾도록 유도해 첫 30초 이탈을 줄일 가능성이 있습니다.' },
+    ];
+    return { lenBins, durBins, heat, hooks, thumbs, insights };
+  }
+
+  /* ── 알고리즘 ── */
+  function algorithm(){
+    const r = rng(hash('alg:'+new Date().toDateString()));
+    const factors = [
+      { t:'클릭률(CTR)', w: 22, score: 64 + Math.round(r()*10),
+        d:'노출 대비 클릭 비율. 첫 4–8시간 CTR이 추천 확장 신호로 작용할 가능성이 큽니다. 썸네일·제목·시청자 맥락이 동시에 영향을 줍니다.' },
+      { t:'평균 시청 시간(AVD)', w: 20, score: 58 + Math.round(r()*12),
+        d:'얼마나 오래 시청했는지의 절대값. 영상이 짧을수록 유리해 보일 수 있으나 절대 시간 자체가 점수로 작용할 가능성이 있습니다.' },
+      { t:'시청 유지율(Retention)', w: 18, score: 52 + Math.round(r()*14),
+        d:'영상 길이 대비 시청한 비율. 인트로 5–30초 구간의 이탈 곡선이 결정적으로 작용할 가능성이 있습니다.' },
+      { t:'세션 체류', w: 14, score: 47 + Math.round(r()*14),
+        d:'해당 영상이 끝난 뒤 시청자가 플랫폼에 계속 머무는지. 자연스러운 이어보기 설계가 영향을 줄 수 있습니다.' },
+      { t:'반응 신호(좋아요·댓글·공유)', w: 10, score: 50 + Math.round(r()*12),
+        d:'행동 신호. 댓글 흐름이 길게 이어지는 영상은 토픽 권위로 누적될 가능성이 있습니다.' },
+      { t:'신선도', w: 8, score: 55 + Math.round(r()*16),
+        d:'발행 직후 가속 구간에서의 성과. 시간이 지날수록 가중치가 빠르게 감쇠할 수 있습니다.' },
+      { t:'채널 주제 권위', w: 8, score: 62 + Math.round(r()*10),
+        d:'채널이 특정 주제를 얼마나 일관되게 다뤄왔는지. 다른 신호가 비슷하면 권위가 누적된 채널에 우선 노출될 가능성이 있습니다.' },
+    ];
+    const principles = [
+      { t:'알고리즘은 영상이 아니라 시청자를 추천한다', d:'개별 영상의 절대 성과보다 "이 시청자에게 이 영상을 보였을 때의 만족도"가 핵심 변수로 작용할 가능성이 큽니다.' },
+      { t:'첫 24시간이 채널 전체의 가속도에 영향', d:'발행 직후 CTR과 유지율이 안정적으로 나오면 다음 영상의 출발선도 함께 올라갈 가능성이 있습니다.' },
+      { t:'단일 신호의 극단치를 만드는 전략은 위험', d:'CTR만 비정상적으로 높고 유지율이 낮으면 클릭베이트로 분류돼 노출이 빠르게 식을 가능성이 있습니다.' },
+      { t:'쇼츠와 롱폼은 거의 별개의 채널처럼 작동', d:'두 포맷의 시청자 페르소나가 다른 경우가 많아 각각 별도의 운영 전략이 필요합니다.' },
+    ];
+    return { factors, principles };
+  }
+
+  return { CATEGORIES, COUNTRIES, hash, rng, thumbColors, viewStr, durStr,
+           summary, trending, trendingByCategory, countries, analysis,
+           relatedVideos, success, algorithm };
+})();
+
+/* ───────── App / Router ───────── */
+const App = {
+  view: 'home',
+  region: Store.read('region', 'KR'),
+  rankingCat: 'all',
+  rankingWindow: '24h',
+  current: null,
+  countryFocus: null,
+  trendingMode: 'group', // 'group' (분야별 10개씩) | 'flat' (단일 카테고리 그리드)
+
+  go(view, payload){
+    this.view = view;
+    if (view === 'analysis' && payload) this.current = payload;
+    if (view === 'countryDetail' && payload) this.countryFocus = payload;
+    document.querySelectorAll('.nav__item[data-view]').forEach(el => {
+      el.classList.toggle('is-active',
+        el.dataset.view === view ||
+        (view==='countryDetail' && el.dataset.view==='countries'));
+    });
+    render();
+    window.scrollTo(0,0);
+  },
+
+  setRegion(code){
+    this.region = code;
+    Store.write('region', code);
+    const c = Gen.COUNTRIES.find(x=>x.code===code);
+    document.getElementById('regionIso').textContent = code;
+    document.getElementById('regionName').textContent = c ? c.name : code;
+    render();
+  },
+
+  async analyzeAndShow(keyword){
+    if (!keyword || !keyword.trim()) return;
+    this.view = 'analysis'; this.current = null;
+    document.querySelectorAll('.nav__item[data-view]').forEach(el => el.classList.toggle('is-active', el.dataset.view === 'analysis'));
+    renderLoading(keyword);
+    const result = await API.analyze(keyword);
+    result.horizons = { m1: result.forecast.future[0], m3: result.forecast.future[2], m6: result.forecast.future[5] };
+    this.current = result;
+    API.history.save({ id: result.id, keyword: result.keyword, category: result.category, scores: result.scores, createdAt: result.createdAt });
+    updateNavCounts();
+    render();
+    toast(`'${keyword}' 분석 완료`);
+  }
+};
+
+/* ───────── Views ───────── */
+const main = document.getElementById('main');
+
+function render(){
+  switch(App.view){
+    case 'home':          return renderHome();
+    case 'trending':      return renderTrending();
+    case 'countries':     return renderCountries();
+    case 'countryDetail': return renderCountryDetail();
+    case 'analysis':      return renderAnalysis();
+    case 'success':       return renderSuccess();
+    case 'algorithm':     return renderAlgorithm();
+    case 'history':       return renderHistory();
+    case 'settings':      return renderSettings();
+    default:              return renderHome();
+  }
+}
+
+function thumb(v, opts={}){
+  const dur = Gen.durStr(v.durationSec);
+  return `
+    <div class="thumb" style="--g1:${v.thumb.g1}; --g2:${v.thumb.g2}">
+      ${opts.rank ? `<div class="thumb__rank">#${opts.rank}</div>` : ''}
+      ${opts.cat !== false ? `<div class="thumb__cat">${v.category.name}</div>` : ''}
+      <div class="thumb__play">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+      <div class="thumb__dur">${dur}</div>
+    </div>
+  `;
+}
+function videoCard(v, opts={}){
+  return `
+    <div class="vid-card" data-kw="${escAttr(v.title)}">
+      ${thumb(v, { rank: opts.rank, cat:true })}
+      <div class="vid-card__body">
+        <div class="vid-card__t">${esc(v.title)}</div>
+        <div class="vid-card__ch">${esc(v.channel)}</div>
+        <div class="vid-card__meta">
+          <span class="vid-card__metric">조회 ${Gen.viewStr(v.views)}</span>
+          <span>·</span>
+          <span>${v.publishedAgoH}시간 전</span>
+        </div>
+      </div>
+      <div class="vid-card__foot">
+        <span>+<b>${Gen.viewStr(v.delta24h)}</b>/24h</span>
+        <span>·</span>
+        <span>CTR <b>${v.ctr}%</b></span>
+        <span class="vid-card__score">${v.score}</span>
+      </div>
+    </div>
+  `;
+}
+function videoRow(v){
+  return `
+    <div class="vid-row" data-kw="${escAttr(v.title)}">
+      <div class="vid-row__rk ${v.rank<=3?'vid-row__rk--top':''}">${v.rank}</div>
+      <div class="vid-row__thumb">${thumb(v, { cat:false })}</div>
+      <div class="vid-row__main">
+        <div class="vid-row__t">${esc(v.title)}</div>
+        <div class="vid-row__ch">${esc(v.channel)} · ${v.publishedAgoH}시간 전</div>
+        <div class="vid-row__tags">
+          <span class="chip">${v.category.name}</span>
+          <span class="chip chip--accent">가능성 ${v.score}</span>
+          ${v.delta24h/v.views > 0.2 ? `<span class="chip chip--ok">급상승</span>` : ''}
+        </div>
+      </div>
+      <div class="vid-row__metrics">
+        <div><div class="met__l">조회</div><div class="met__v">${Gen.viewStr(v.views)}</div><div class="met__s">+${Gen.viewStr(v.delta24h)}/24h</div></div>
+        <div><div class="met__l">예상 CTR</div><div class="met__v">${v.ctr}%</div><div class="met__s">시그널 추정</div></div>
+        <div><div class="met__l">유지율</div><div class="met__v">${v.retention}%</div><div class="met__s">평균 ${Math.floor(v.avd/60)}:${String(v.avd%60).padStart(2,'0')}</div></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ── HOME ── */
+async function renderHome(){
+  const s = await API.summary(App.region);
+  const recent = API.history.list().slice(0,3);
+  const regionName = (Gen.COUNTRIES.find(x=>x.code===App.region)||{}).name || App.region;
+
+  main.innerHTML = `
+    <section class="hero">
+      <div class="hero__deco"></div>
+      <span class="hero__eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v3M5 5l2 2M3 12h3M5 19l2-2M12 21v-3M19 19l-2-2M21 12h-3M19 5l-2 2"/></svg>
+        유튜브 시그널 엔진 · Beta
+      </span>
+      <h2>${regionName}에서 떠오르는 영상, 한눈에 들여다보세요.</h2>
+      <p>채널·주제·국가별로 흩어진 미세 신호를 모아 성장 가능성·사업화 가능성·콘텐츠 활용성·잠재 리스크를 비확정 가능성 기준으로 추정합니다.</p>
+      <form class="hero__form" id="heroForm">
+        <input id="heroInput" placeholder="주제·키워드를 입력하세요 (예: 미니멀 캠핑, 하루 한 끼)" autocomplete="off"/>
+        <button type="submit">분석 시작
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+      <div class="hero__sugs">
+        <span>추천 :</span>
+        ${['미니멀 캠핑','하루 한 끼 단백질','로컬 디저트','자취 인테리어','월배당 포트폴리오'].map(k=>`<button data-sug="${escAttr(k)}">${esc(k)}</button>`).join('')}
+      </div>
+    </section>
+
+    <div class="stats">
+      ${statCard('관측 중인 영상', s.totalTracked.toLocaleString('ko-KR'), regionName + ' 기준')}
+      ${statCard('현재 급상승', s.risingNow + '개', '지난 24시간 추정')}
+      ${statCard('인기 카테고리', s.topCategory, '24시간 누적')}
+      ${statCard('평균 CTR 추정', s.avgCtr + '%', '카테고리 가중 평균')}
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card__hd">
+          <h3>${regionName} 급상승 영상</h3>
+          <span class="muted">상위 6개 · 가능성 점수 기반</span>
+          <div class="right"><button class="btn btn--sm" data-nav="trending">전체 보기</button></div>
+        </div>
+        <div class="vid-grid">
+          ${s.top.slice(0,6).map(v => videoCard(v, { rank: v.rank })).join('')}
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px">
+        <div class="card">
+          <div class="card__hd">
+            <h3>국가별 핫스팟</h3>
+            <div class="right"><button class="btn btn--sm" data-nav="countries">전체 보기</button></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            ${Gen.COUNTRIES.slice(0,5).map(c => {
+              const t = Gen.thumbColors('flag:'+c.code);
+              const top = Gen.trending({region:c.code})[0];
+              return `
+                <div class="vid-row" style="grid-template-columns: 40px 1fr auto; padding:8px" data-region="${c.code}">
+                  <div class="ctry-iso" style="--g1:${t.g1}; --g2:${t.g2}">${c.code}</div>
+                  <div style="min-width:0">
+                    <div style="font-size:13px; font-weight:650">${c.name}</div>
+                    <div style="font-size:11.5px; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${esc(top.title)}</div>
+                  </div>
+                  <span class="chip chip--accent">${top.score}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__hd">
+            <h3>최근 내 분석</h3>
+            <div class="right"><button class="btn btn--sm" data-nav="history">히스토리</button></div>
+          </div>
+          ${recent.length ? `
+            <div style="display:flex; flex-direction:column">
+              ${recent.map(h => `
+                <div class="vid-row" style="grid-template-columns: 10px 1fr auto; padding:10px 4px" data-kw="${escAttr(h.keyword)}">
+                  <div style="width:8px; height:8px; border-radius:50%; background:${scoreColor(h.scores.overall)}"></div>
+                  <div>
+                    <div style="font-weight:650; font-size:13.5px">${esc(h.keyword)}</div>
+                    <div style="font-size:11.5px; color:var(--ink-3)">${h.category.name} · 종합 ${h.scores.overall}점</div>
+                  </div>
+                  <div style="font-size:11px; color:var(--ink-4)">${timeAgo(h.createdAt)}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `<div class="empty"><h4>아직 분석 기록이 없습니다</h4><p>위 검색창에서 주제를 입력해보세요.</p></div>`}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('heroForm').addEventListener('submit', e => { e.preventDefault(); App.analyzeAndShow(document.getElementById('heroInput').value); });
+  main.querySelectorAll('[data-sug]').forEach(b => b.addEventListener('click', () => App.analyzeAndShow(b.dataset.sug)));
+  main.querySelectorAll('[data-kw]').forEach(el => el.addEventListener('click', () => App.analyzeAndShow(el.dataset.kw)));
+  main.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => App.go(b.dataset.nav)));
+  main.querySelectorAll('[data-region]').forEach(el => el.addEventListener('click', () => { App.setRegion(el.dataset.region); App.go('countryDetail', el.dataset.region); }));
+}
+
+function statCard(label, value, meta){
+  return `<div class="stat"><div class="stat__label">${esc(label)}</div><div class="stat__value">${value}</div><div class="stat__meta">${esc(meta)}</div></div>`;
+}
+
+/* ── TRENDING (분야별 10개씩 / 단일 분야 그리드) ── */
+async function renderTrending(){
+  const regionName = (Gen.COUNTRIES.find(x=>x.code===App.region)||{}).name || App.region;
+  const cats = [{id:'all', name:'전체'}, ...Gen.CATEGORIES];
+  const windows = [{id:'now',name:'지금'},{id:'24h',name:'24시간'},{id:'7d',name:'주간'}];
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <h1>${regionName} 급상승 동영상</h1>
+        <p>분야별 가능성 점수 상위 10개씩. 모든 수치는 가상 추정입니다.</p>
+      </div>
+      <div class="page-head__actions">
+        <div class="tabs" id="winTabs">
+          ${windows.map(w=>`<div class="tab ${w.id===App.rankingWindow?'is-active':''}" data-win="${w.id}">${w.name}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px; padding:14px 18px">
+      <div class="tabs" id="catTabs">
+        ${cats.map(c=>`<div class="tab ${c.id===App.rankingCat?'is-active':''}" data-cat="${c.id}">${c.name}</div>`).join('')}
+      </div>
+    </div>
+
+    <div id="trendBody">
+      ${Array.from({length:3}).map(()=>`<div class="card" style="margin-bottom:18px"><div class="skeleton" style="height:200px"></div></div>`).join('')}
+    </div>
+  `;
+
+  const body = document.getElementById('trendBody');
+
+  if (App.rankingCat === 'all'){
+    // 분야별 상위 10개씩 그룹 표시
+    const groups = await API.trendingByCategory({ region: App.region, window: App.rankingWindow });
+    body.innerHTML = groups.map(g => `
+      <section class="cat-sec">
+        <div class="cat-sec__hd">
+          <h2 class="cat-sec__t">${g.category.name}</h2>
+          <span class="cat-sec__sub">상위 10개 · 가능성 점수 기준</span>
+          <div class="cat-sec__more"><button class="btn btn--sm" data-cat-jump="${g.category.id}">이 분야만 보기</button></div>
+        </div>
+        <div class="vid-grid">
+          ${g.videos.map(v => videoCard(v, { rank: v.rank })).join('')}
+        </div>
+      </section>
+    `).join('');
+    body.querySelectorAll('[data-cat-jump]').forEach(b => b.addEventListener('click', () => {
+      App.rankingCat = b.dataset.catJump; renderTrending();
+    }));
+  } else {
+    // 단일 분야: 상위 10개 그리드 + 더 자세한 리스트 10개
+    const rows = await API.trending({ region: App.region, category: App.rankingCat, window: App.rankingWindow });
+    const cat = Gen.CATEGORIES.find(c=>c.id===App.rankingCat);
+    body.innerHTML = `
+      <section class="cat-sec">
+        <div class="cat-sec__hd">
+          <h2 class="cat-sec__t">${cat?cat.name:''} · 상위 10개</h2>
+          <span class="cat-sec__sub">${regionName} · 가능성 점수 기준</span>
+        </div>
+        <div class="vid-grid">${rows.slice(0,10).map(v => videoCard(v, { rank: v.rank })).join('')}</div>
+      </section>
+
+      <section class="cat-sec">
+        <div class="cat-sec__hd">
+          <h2 class="cat-sec__t">상세 지표</h2>
+          <span class="cat-sec__sub">CTR·유지율 추정 포함</span>
+        </div>
+        <div class="vid-list">${rows.slice(0,10).map(videoRow).join('')}</div>
+      </section>
+    `;
+  }
+  body.querySelectorAll('[data-kw]').forEach(el => el.addEventListener('click', () => App.analyzeAndShow(el.dataset.kw)));
+
+  document.querySelectorAll('#catTabs .tab').forEach(t => t.addEventListener('click', () => { App.rankingCat = t.dataset.cat; renderTrending(); }));
+  document.querySelectorAll('#winTabs .tab').forEach(t => t.addEventListener('click', () => { App.rankingWindow = t.dataset.win; renderTrending(); }));
+}
+
+/* ── COUNTRIES ── */
+async function renderCountries(){
+  const list = await API.countries();
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>국가별 트렌드</h1><p>16개국의 급상승 신호 요약 · 카드를 눌러 국가별 상세를 확인하세요.</p></div>
+    </div>
+    <div class="ctry-grid">
+      ${list.map(c => `
+        <div class="ctry-card" data-code="${c.code}">
+          <div class="ctry-card__hd">
+            <div class="ctry-iso" style="--g1:${c.thumb.g1}; --g2:${c.thumb.g2}">${c.code}</div>
+            <div><div class="ctry-card__name">${c.name}</div><div class="ctry-card__lang">${c.lang}</div></div>
+          </div>
+          <div class="ctry-top">▲ ${esc(c.topVideo.title)}</div>
+          <div class="ctry-stats">
+            <div><b>${c.risingCount}</b><span>급상승 영상</span></div>
+            <div><b>${c.hotCategory}</b><span>인기 분야</span></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.querySelectorAll('.ctry-card').forEach(el => el.addEventListener('click', () => {
+    App.setRegion(el.dataset.code);
+    App.go('countryDetail', el.dataset.code);
+  }));
+}
+
+/* ── COUNTRY DETAIL ── */
+async function renderCountryDetail(){
+  const code = App.countryFocus || App.region;
+  const c = Gen.COUNTRIES.find(x=>x.code===code);
+  const tc = Gen.thumbColors('flag:'+code);
+  const rows = await API.trending({ region: code, window:'24h' });
+  const counts = {};
+  rows.forEach(v => counts[v.category.name] = (counts[v.category.name]||0)+1);
+  const dist = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const distMax = Math.max(...dist.map(([,v])=>v));
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div style="display:flex; align-items:center; gap:14px">
+        <div class="ctry-iso" style="--g1:${tc.g1}; --g2:${tc.g2}; width:44px; height:32px; border-radius:7px; font-size:13px">${code}</div>
+        <div><h1>${c?c.name:code} 트렌드</h1><p>지난 24시간 기준 급상승 가능성 상위 영상과 분야 분포입니다.</p></div>
+      </div>
+      <div class="page-head__actions"><button class="btn btn--sm" data-nav="countries">국가 목록</button></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="vid-list">${rows.slice(0,12).map(videoRow).join('')}</div>
+      <div style="display:flex; flex-direction:column; gap:18px">
+        <div class="card">
+          <div class="card__hd"><h3>분야 분포</h3><span class="muted">상위 12개 영상 기준</span></div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            ${dist.map(([n,v]) => `
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px">
+                  <span style="font-weight:600">${esc(n)}</span>
+                  <span style="color:var(--ink-3); font-variant-numeric:tabular-nums">${v}건</span>
+                </div>
+                <div style="height:6px; background:var(--bg-sunken); border-radius:99px; overflow:hidden">
+                  <div style="width:${(v/distMax)*100}%; height:100%; background:var(--accent); border-radius:99px"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card__hd"><h3>이 국가의 특징</h3><span class="muted">가능성 기반 관측</span></div>
+          <div class="insight-list">
+            ${[
+              { t:`${c?c.name:code} 시청자는 ${dist[0]?.[0]||'엔터'} 영상 노출이 가장 활발한 것으로 추정됩니다.`, d:'카테고리 기반 정렬 결과이며 시즌·이벤트에 따라 변동 가능성이 큽니다.' },
+              { t:'언어 다양성을 고려한 자막 전략이 유효해 보입니다.', d:`${c?c.lang:'현지어'} 외에 영어 자막을 함께 제공하는 채널의 노출 가능성이 더 높게 관측됩니다.` },
+              { t:'현지 시간 저녁대 업로드가 안정적이라는 관측', d:'발행 직후 4시간 CTR이 알고리즘 신호로 작용할 가능성이 큽니다.' }
+            ].map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${it.t}</div><div class="insight__d">${it.d}</div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  main.querySelectorAll('.vid-row').forEach(r => r.addEventListener('click', () => App.analyzeAndShow(r.dataset.kw)));
+  main.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => App.go(b.dataset.nav)));
+}
+
+/* ── ANALYSIS ── */
+function renderLoading(keyword){
+  main.innerHTML = `
+    <div class="page-head"><div><h1>'${esc(keyword)}' 분석 중…</h1><p>여러 신호를 모아 4가지 축으로 가능성을 추정하고 있습니다.</p></div></div>
+    <div class="res-head"><div class="res-head__main"><div class="skeleton" style="height:14px; width:120px"></div><div class="skeleton" style="height:32px; width:60%; margin-top:10px"></div><div class="skeleton" style="height:14px; width:90%; margin-top:14px"></div></div></div>
+    <div class="scores">${Array(4).fill(0).map(()=>`<div class="card"><div class="skeleton" style="height:14px; width:60%"></div><div class="skeleton" style="height:28px; width:40%; margin-top:10px"></div><div class="skeleton" style="height:6px; width:100%; margin-top:14px"></div></div>`).join('')}</div>
+  `;
+}
+
+async function renderAnalysis(){
+  const a = App.current;
+  if (!a){
+    main.innerHTML = `
+      <div class="page-head"><div><h1>주제/키워드 분석</h1><p>먼저 분석할 주제나 키워드를 입력해주세요.</p></div></div>
+      <div class="card">
+        <div class="card__hd"><h3>키워드 입력</h3></div>
+        <form class="hero__form" id="emptyForm" style="margin-top:0">
+          <input id="emptyInput" placeholder="예) 자취 인테리어, 미니멀 캠핑"/>
+          <button>분석 시작</button>
+        </form>
+      </div>
+    `;
+    document.getElementById('emptyForm').addEventListener('submit', e=>{ e.preventDefault(); App.analyzeAndShow(document.getElementById('emptyInput').value); });
+    return;
+  }
+
+  const s = a.scores;
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>주제 분석 결과</h1><p>모든 수치는 단정적 예측이 아닌 가능성 기반 추정입니다.</p></div>
+      <div class="page-head__actions">
+        <button class="btn btn--sm" id="reAnalyze">다시 분석</button>
+        <button class="btn btn--sm btn--primary" id="saveAnalysis">분석 저장</button>
+      </div>
+    </div>
+
+    <div class="res-head">
+      <div class="res-head__main">
+        <div style="display:flex; gap:8px; align-items:center">
+          <span class="chip chip--accent">${a.category.name}</span>
+          <span class="chip">${verdict(s.overall)}</span>
+        </div>
+        <div class="res-head__kw">${esc(a.keyword)}</div>
+        <div style="color:var(--ink-3); font-size:13px; max-width:680px">${esc(a.summary)}</div>
+        <div class="res-head__meta" style="margin-top:10px">
+          <span>업데이트 ${new Date(a.createdAt).toLocaleString('ko-KR')}</span>
+          <span>·</span>
+          <span>다채널 통합 추정 (가상 데이터)</span>
+        </div>
+      </div>
+      <div class="res-head__score">
+        ${gauge(s.overall)}
+        <div>
+          <div style="font-size:11px; color:var(--ink-3); font-weight:600">종합 가능성 지수</div>
+          <div style="font-weight:700; font-size:16px; margin-top:4px">${verdict(s.overall)}</div>
+          <div style="font-size:11.5px; color:var(--ink-3); margin-top:2px; max-width:200px">4개 축 가중 평균. 확정 아님.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scores">
+      ${scoreCard('성장 가능성',   s.growth,   '시청 확장 신호 강도')}
+      ${scoreCard('사업화 가능성', s.business, '수익 모델 발전 여지')}
+      ${scoreCard('콘텐츠 활용성', s.content,  '포맷 다각화 적합도')}
+      ${scoreCard('리스크',        s.risk,     '낮을수록 안전 추정', true)}
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card__hd"><h3>예측 추이 — 과거 6개월 / 미래 6개월</h3><span class="muted">신뢰 구간은 가능성 범위</span></div>
+        ${forecastChart(a.forecast)}
+        <div class="chart-legend">
+          <span><i style="background:var(--ink-3)"></i> 실측 신호 (가상)</span>
+          <span><i style="background:var(--accent)"></i> 추정 중앙값</span>
+          <span><i style="background:var(--accent-soft); height:6px; border-radius:2px"></i> 가능성 범위</span>
+        </div>
+        <div class="forecast-stats">
+          ${horizonCell('1개월 후', a.horizons.m1)}
+          ${horizonCell('3개월 후', a.horizons.m3)}
+          ${horizonCell('6개월 후', a.horizons.m6)}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__hd"><h3>관련 키워드</h3><span class="muted">의미·맥락 인접도 추정</span></div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px">
+          ${a.related.map(k=>`<button class="chip" data-kw="${escAttr(k)}" style="cursor:pointer">${esc(k)}</button>`).join('')}
+        </div>
+        <div style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--line)">
+          <div style="font-size:12px; color:var(--ink-3); font-weight:600; margin-bottom:8px">시청자 페르소나 추정</div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            ${['20대 후반 직장인','정보 탐색형 시청자','짧은 호흡 선호'].map(p=>`<div style="display:flex; align-items:center; gap:8px; font-size:13px"><div style="width:6px; height:6px; border-radius:50%; background:var(--accent)"></div>${p}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2-eq">
+      <div class="card">
+        <div class="card__hd"><h3>AI 사업 아이디어</h3><span class="muted">실행 가능성 기반</span></div>
+        <div class="ideas">${a.ideas.biz.map((it,i)=>ideaRow(it, i+1, '비즈')).join('')}</div>
+      </div>
+      <div class="card">
+        <div class="card__hd"><h3>AI 콘텐츠 아이디어</h3><span class="muted">포맷별 시드</span></div>
+        <div class="ideas">${a.ideas.content.map((it,i)=>ideaRow(it, i+1, it.fmt)).join('')}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card__hd"><h3>리스크 분석</h3><span class="muted">잠재 위험 요인 · 가능성 기반</span></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+        ${a.risks.map(r => `
+          <div class="insight" style="border-left:4px solid ${r.l==='high'?'var(--danger)':r.l==='med'?'var(--warn)':'var(--ok)'}">
+            <div class="insight__num" style="background:${r.l==='high'?'var(--danger)':r.l==='med'?'var(--warn)':'var(--ok)'}">!</div>
+            <div style="flex:1">
+              <div style="display:flex; align-items:center; gap:8px"><span class="insight__t">${esc(r.t)}</span><span class="chip ${r.l==='high'?'chip--danger':r.l==='med'?'chip--warn':'chip--ok'}">${riskLabel(r.l)}</span></div>
+              <div class="insight__d">${esc(r.d)}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- 관련 유튜브 영상 10개 -->
+    <div class="card">
+      <div class="card__hd">
+        <h3>'${esc(a.keyword)}' 관련 유튜브 영상</h3>
+        <span class="muted">분석에 도움이 될 만한 영상 10개 · 카드를 누르면 해당 영상 주제로 다시 분석합니다</span>
+      </div>
+      <div id="relVidGrid" class="vid-grid">
+        ${Array.from({length:10}).map(()=>`<div><div class="skeleton" style="aspect-ratio:16/9; border-radius:10px"></div><div class="skeleton" style="height:14px; margin-top:8px; width:80%"></div><div class="skeleton" style="height:12px; margin-top:6px; width:60%"></div></div>`).join('')}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('reAnalyze').addEventListener('click', () => App.analyzeAndShow(a.keyword));
+  document.getElementById('saveAnalysis').addEventListener('click', () => toast('이번 결과가 히스토리에 저장되었습니다'));
+  main.querySelectorAll('[data-kw]').forEach(b => b.addEventListener('click', () => App.analyzeAndShow(b.dataset.kw)));
+
+  // 관련 영상 비동기 로드
+  const rel = await API.relatedVideos(a.keyword, 10);
+  const grid = document.getElementById('relVidGrid');
+  if (grid){
+    grid.innerHTML = rel.map(v => videoCard(v, { rank: v.rank })).join('');
+    grid.querySelectorAll('[data-kw]').forEach(el => el.addEventListener('click', () => App.analyzeAndShow(el.dataset.kw)));
+  }
+}
+
+function gauge(score){
+  const r = 40, c = 2*Math.PI*r;
+  const off = c * (1 - score/100);
+  const color = scoreColor(score);
+  return `
+    <div class="gauge">
+      <svg width="96" height="96" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg-sunken)" stroke-width="10"/>
+        <circle cx="50" cy="50" r="${r}" fill="none" stroke="${color}" stroke-width="10" stroke-dasharray="${c}" stroke-dashoffset="${off}" stroke-linecap="round"/>
+      </svg>
+      <div class="gauge__val"><div class="gauge__num">${score}</div><div class="gauge__sub">/ 100</div></div>
+    </div>
+  `;
+}
+function scoreCard(label, val, note, inverse=false){
+  const color = inverse ? (val>60 ? 'var(--danger)' : val>35 ? 'var(--warn)' : 'var(--ok)') : 'var(--ink)';
+  const barColor = inverse ? color : 'var(--accent)';
+  return `
+    <div class="score">
+      <div class="score__hd">${label}</div>
+      <div class="score__num" style="color:${color}">${val}<span style="font-size:13px; color:var(--ink-4); font-weight:600"> / 100</span></div>
+      <div class="score__bar"><span style="width:${val}%; background:${barColor}"></span></div>
+      <div class="score__note">${note}</div>
+    </div>
+  `;
+}
+function horizonCell(label, h){
+  return `<div class="fc-cell"><div class="fc-cell__h">${label}</div><div class="fc-cell__v">${Math.round(h.mid)} <span style="font-size:11px; color:var(--ink-4); font-weight:600">점</span></div><div class="fc-cell__r">가능성 범위 ${Math.round(h.lo)} – ${Math.round(h.hi)}</div></div>`;
+}
+function ideaRow(it, n, badge){
+  return `<div class="idea"><div class="idea__ic">${n}</div><div><div class="idea__t">${esc(it.t)}</div><div class="idea__d">${esc(it.d)}</div>${it.fmt?`<div class="idea__tags"><span class="chip">${esc(it.fmt)}</span></div>`:''}</div><div class="idea__rt">${badge||''}</div></div>`;
+}
+function forecastChart(fc){
+  const W = 640, H = 220, P = 28;
+  const series = [...fc.past.map(p=>({t:p.t, v:p.v, kind:'past'}))].concat(fc.future.map(f=>({t:f.t, v:f.mid, lo:f.lo, hi:f.hi, kind:'future'})));
+  const n = series.length;
+  const x = i => P + (W - P*2) * i / (n-1);
+  const y = v => H - P - (H - P*2) * (v/100);
+  const past = series.filter(s=>s.kind==='past');
+  const future = series.filter(s=>s.kind==='future');
+  const joinIdx = past.length - 1;
+  const linePast = past.map((p,i)=>`${i===0?'M':'L'}${x(i)},${y(p.v)}`).join(' ');
+  const lineFutPts = [past[past.length-1], ...future];
+  const lineFut = lineFutPts.map((p,i)=>`${i===0?'M':'L'}${x(joinIdx+i)},${y(p.v ?? p.mid)}`).join(' ');
+  const top = future.map((f,i)=>`${i===0?'M':'L'}${x(joinIdx+1+i)},${y(f.hi)}`).join(' ');
+  const bot = future.slice().reverse().map((f,i)=>`L${x(joinIdx+future.length-i)},${y(f.lo)}`).join(' ');
+  const band = `${top} ${bot} Z`;
+  const grid = [20,40,60,80].map(v => `<line x1="${P}" x2="${W-P}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-dasharray="3 4"/>`).join('');
+  const labelsY = [0,20,40,60,80,100].map(v => `<text x="${P-8}" y="${y(v)+3}" font-size="10" fill="var(--ink-4)" text-anchor="end">${v}</text>`).join('');
+  const labelsX = series.map((s,i)=> (i % 2 === 0 || i === n-1) ? `<text x="${x(i)}" y="${H-P+16}" font-size="10" fill="var(--ink-4)" text-anchor="middle">${s.t}</text>` : '').join('');
+  const joinLine = `<line x1="${x(joinIdx)}" x2="${x(joinIdx)}" y1="${P}" y2="${H-P}" stroke="var(--line-strong)" stroke-dasharray="4 4"/>`;
+  const joinLbl = `<text x="${x(joinIdx)+6}" y="${P+10}" font-size="10" font-weight="600" fill="var(--ink-3)">현재</text>`;
+  const dotsPast = past.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.v)}" r="2.5" fill="var(--ink-2)"/>`).join('');
+  const dotsFut = future.map((f,i)=>`<circle cx="${x(joinIdx+1+i)}" cy="${y(f.mid)}" r="3" fill="#fff" stroke="var(--accent)" stroke-width="2"/>`).join('');
+  return `
+    <div class="chart-wrap">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:240px">
+        ${grid}${labelsY}${labelsX}
+        <path d="${band}" fill="var(--accent-soft)" opacity="0.7"/>
+        <path d="${linePast}" fill="none" stroke="var(--ink-2)" stroke-width="2"/>
+        <path d="${lineFut}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-dasharray="4 4"/>
+        ${dotsPast}${dotsFut}${joinLine}${joinLbl}
+      </svg>
+    </div>
+  `;
+}
+
+/* ── SUCCESS PATTERNS ── */
+async function renderSuccess(){
+  const data = await API.success(App.region);
+  const regionName = (Gen.COUNTRIES.find(x=>x.code===App.region)||{}).name || App.region;
+  const peakLen = data.lenBins.indexOf(Math.max(...data.lenBins));
+  const peakDur = data.durBins.indexOf(Math.max(...data.durBins));
+  const maxHeat = Math.max(...data.heat.flat());
+
+  main.innerHTML = `
+    <div class="page-head"><div><h1>성공 패턴 분석</h1><p>${regionName} 상위 영상의 공통 신호를 가능성 기반으로 정리했습니다.</p></div></div>
+
+    <div class="grid-2-eq">
+      <div class="card">
+        <div class="card__hd"><h3>제목 글자 수 분포</h3><span class="muted">바깥 영역일수록 비중 낮음</span></div>
+        <div class="dist">${data.lenBins.map((v,i)=>`<div class="dist__bar ${i===peakLen?'is-peak':''}" style="height:${Math.max(8, v*1.6)}px" title="${15+i*5}자"></div>`).join('')}</div>
+        <div class="dist__axis"><span>15자</span><span>40자</span><span>80자</span></div>
+        <div style="font-size:12.5px; color:var(--ink-3); margin-top:8px">정점 구간 <b style="color:var(--ink)">${15+peakLen*5}~${20+peakLen*5}자</b> 부근으로 관측됩니다.</div>
+      </div>
+      <div class="card">
+        <div class="card__hd"><h3>영상 길이 분포</h3><span class="muted">분 단위</span></div>
+        <div class="dist">${data.durBins.map((v,i)=>`<div class="dist__bar ${i===peakDur?'is-peak':''}" style="height:${Math.max(8, v*1.6)}px" title="${(2.5+i*2.5).toFixed(1)}분"></div>`).join('')}</div>
+        <div class="dist__axis"><span>2분</span><span>15분</span><span>30분</span></div>
+        <div style="font-size:12.5px; color:var(--ink-3); margin-top:8px">정점 구간 <b style="color:var(--ink)">${(2.5+peakDur*2.5).toFixed(0)}~${(2.5+(peakDur+1)*2.5).toFixed(0)}분</b> 부근에서 관측되며 카테고리별 편차가 큽니다.</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card__hd"><h3>업로드 시간대 (요일 × 시간)</h3><span class="muted">색이 진할수록 관측 빈도 높음</span></div>
+        <div class="heatmap">
+          ${(['월','화','수','목','금','토','일']).map((d,di)=>`
+            <div class="heatmap__lbl">${d}</div>
+            ${data.heat[di].map(v=>{
+              const a = v/maxHeat;
+              return `<div class="heatmap__cell" style="background:oklch(${0.97 - a*0.45} ${0.005 + a*0.13} 262)" title="${d} ${v}건"></div>`;
+            }).join('')}
+          `).join('')}
+        </div>
+        <div class="heatmap__hours">
+          <span></span>
+          ${Array.from({length:24}, (_,i)=>`<span>${i%6===0?i:''}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__hd"><h3>후킹 전략 비중</h3></div>
+        <div style="display:flex; flex-direction:column; gap:10px">
+          ${data.hooks.sort((a,b)=>b.share-a.share).map(h=>`
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px">
+                <span style="font-weight:650">${h.name}</span>
+                <span style="color:var(--ink-3); font-variant-numeric:tabular-nums">${h.share}%</span>
+              </div>
+              <div style="height:6px; background:var(--bg-sunken); border-radius:99px"><div style="width:${h.share*3}%; max-width:100%; height:100%; background:var(--accent); border-radius:99px"></div></div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--line)">
+          <div style="font-size:12px; color:var(--ink-3); font-weight:600; margin-bottom:8px">썸네일 톤 비중</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px">
+            ${data.thumbs.sort((a,b)=>b.share-a.share).map(t=>`<span class="chip">${t.name} · ${t.share}%</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__hd"><h3>핵심 인사이트</h3><span class="muted">가능성 기반 관찰</span></div>
+      <div class="insight-list">
+        ${data.insights.map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${esc(it.t)}</div><div class="insight__d">${esc(it.d)}</div></div></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ── ALGORITHM ── */
+async function renderAlgorithm(){
+  const data = await API.algorithm();
+  const totalW = data.factors.reduce((s,f)=>s+f.w, 0);
+  main.innerHTML = `
+    <div class="page-head"><div><h1>알고리즘 인사이트</h1><p>플랫폼이 영상을 추천할 때 영향을 줄 가능성이 있는 신호를 가중치 기반으로 정리합니다. 확정된 공식이 아니라 공개 자료·관측 기반 추정입니다.</p></div></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card__hd"><h3>추정 가중 신호</h3><span class="muted">상대적 비중 · 가설 기반</span></div>
+        <div>
+          ${data.factors.map(f=>`
+            <div class="factor">
+              <div class="factor__hd"><div class="factor__t">${f.t}</div><span class="factor__w">상대 비중 ${Math.round(f.w/totalW*100)}%</span></div>
+              <div class="factor__val">${f.score}<span style="font-size:11px; color:var(--ink-4); font-weight:600"> / 100</span></div>
+              <div class="factor__bar"><i style="width:${f.score}%"></i></div>
+              <div class="factor__d">${esc(f.d)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:18px">
+        <div class="card">
+          <div class="card__hd"><h3>가중 비중 비교</h3><span class="muted">트리맵 추정</span></div>
+          ${treemap(data.factors)}
+        </div>
+        <div class="card">
+          <div class="card__hd"><h3>운영 원칙</h3><span class="muted">알고리즘이 보내는 신호 해석</span></div>
+          <div class="insight-list">
+            ${data.principles.map((p,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${esc(p.t)}</div><div class="insight__d">${esc(p.d)}</div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function treemap(factors){
+  const total = factors.reduce((s,f)=>s+f.w,0);
+  const top = factors.slice(0,3);
+  const bot = factors.slice(3);
+  const sumTop = top.reduce((s,f)=>s+f.w,0);
+  const sumBot = bot.reduce((s,f)=>s+f.w,0);
+  const hueOf = (i) => 262 + i*14;
+  const cell = (f, i, denom, h) => `
+    <div style="flex:${f.w/denom}; height:${h}px; background:oklch(${0.96 - (i*0.02)} ${0.04 + i*0.01} ${hueOf(i)}); border-radius:8px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; min-width:0; overflow:hidden">
+      <div style="font-size:11.5px; font-weight:650; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${esc(f.t)}</div>
+      <div style="font-size:13px; font-weight:700; font-variant-numeric:tabular-nums">${Math.round(f.w/total*100)}%</div>
+    </div>
+  `;
+  return `
+    <div style="display:flex; flex-direction:column; gap:6px">
+      <div style="display:flex; gap:6px">${top.map((f,i)=>cell(f,i,sumTop,90)).join('')}</div>
+      <div style="display:flex; gap:6px">${bot.map((f,i)=>cell(f,i+3,sumBot,60)).join('')}</div>
+    </div>
+  `;
+}
+
+/* ── HISTORY ── */
+function renderHistory(){
+  const list = API.history.list();
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>분석 히스토리</h1><p>저장한 분석은 브라우저에 보관됩니다 · 총 ${list.length}건</p></div>
+      <div class="page-head__actions">${list.length ? `<button class="btn btn--sm btn--danger" id="clearAll">전체 삭제</button>` : ''}</div>
+    </div>
+    ${list.length ? `
+      <div class="hist-grid">
+        ${list.map(h => `
+          <div class="hist-card" data-id="${h.id}">
+            <div class="hist-card__hd"><span class="chip chip--accent">${h.category.name}</span><span class="hist-card__time" style="margin-left:auto">${timeAgo(h.createdAt)}</span></div>
+            <div class="hist-card__kw">${esc(h.keyword)}</div>
+            <div class="hist-card__scores">
+              <div class="hist-card__s"><b>${h.scores.overall}</b>종합</div>
+              <div class="hist-card__s"><b>${h.scores.growth}</b>성장</div>
+              <div class="hist-card__s"><b>${h.scores.business}</b>사업</div>
+              <div class="hist-card__s"><b>${h.scores.risk}</b>리스크</div>
+            </div>
+            <div class="hist-card__act">
+              <button class="btn btn--sm" data-action="open" data-kw="${escAttr(h.keyword)}">다시 분석</button>
+              <button class="btn btn--sm btn--danger" data-action="del" data-id="${h.id}">삭제</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : `
+      <div class="empty">
+        <h4>아직 저장된 분석이 없습니다</h4>
+        <p>홈에서 주제를 입력해 첫 분석을 시작해보세요.</p>
+        <div style="margin-top:14px"><button class="btn btn--accent btn--sm" id="goHome">홈으로 가기</button></div>
+      </div>
+    `}
+  `;
+  document.querySelectorAll('[data-action="open"]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); App.analyzeAndShow(b.dataset.kw); }));
+  document.querySelectorAll('[data-action="del"]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    API.history.remove(b.dataset.id); updateNavCounts(); renderHistory(); toast('항목이 삭제되었습니다');
+  }));
+  const clr = document.getElementById('clearAll');
+  if (clr) clr.addEventListener('click', () => { API.history.clear(); updateNavCounts(); renderHistory(); toast('히스토리를 모두 삭제했습니다'); });
+  const gh = document.getElementById('goHome');
+  if (gh) gh.addEventListener('click', () => App.go('home'));
+}
+
+/* ── SETTINGS ── */
+function renderSettings(){
+  const cfg = SettingsCfg.load();
+  const mask = (k) => !k ? '' : (k.length <= 8 ? '••••' : k.slice(0,4) + '••••••••' + k.slice(-4));
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>설정</h1><p>API 키는 브라우저에만 저장됩니다. 키 없이도 데모 모드로 모든 기능을 둘러볼 수 있습니다.</p></div>
+    </div>
+
+    <div class="grid-2-eq">
+      <div class="card">
+        <div class="card__hd"><h3>YouTube Data API</h3><span class="muted">v3 · 트렌딩·검색·통계용</span></div>
+
+        <div class="field">
+          <label class="field__lbl">API Key</label>
+          <div class="field__row">
+            <input class="field__input ${cfg.youtubeApiKey?'is-saved':''}" id="ytKey" type="password"
+                   placeholder="AIza... 로 시작하는 키를 붙여넣으세요"
+                   value="${esc(cfg.youtubeApiKey)}"/>
+            <button class="btn" id="ytToggle" type="button" title="키 표시 전환">표시</button>
+          </div>
+          <div class="field__hint">현재 저장 상태: <b>${cfg.youtubeApiKey ? mask(cfg.youtubeApiKey) : '미설정 (데모 모드)'}</b></div>
+        </div>
+
+        <div class="field">
+          <label class="field__lbl">기본 리전 (조회 기본값)</label>
+          <select class="field__input" id="defaultRegion" style="font-family:var(--font)">
+            ${Gen.COUNTRIES.map(c=>`<option value="${c.code}" ${App.region===c.code?'selected':''}>${c.code} · ${c.name}</option>`).join('')}
+          </select>
+        </div>
+
+        <div style="display:flex; gap:8px">
+          <button class="btn btn--primary" id="saveYt">저장</button>
+          <button class="btn btn--danger" id="clearYt">키 삭제</button>
+        </div>
+
+        <div class="field__hint" style="margin-top:14px; padding:12px; background:var(--bg-sunken); border-radius:8px">
+          <b style="color:var(--ink); font-weight:650">키 발급 안내</b><br/>
+          Google Cloud Console에서 프로젝트 생성 → YouTube Data API v3 활성화 → 사용자 인증 정보 → API 키 생성 순으로 진행합니다. 일일 쿼터(기본 10,000)에 유의하세요.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__hd"><h3>AI 분석 API</h3><span class="muted">키워드·아이디어·요약 생성용</span></div>
+
+        <div class="field">
+          <label class="field__lbl">AI 제공자</label>
+          <select class="field__input" id="aiProvider" style="font-family:var(--font)">
+            <option value="auto"      ${cfg.aiProvider==='auto'?'selected':''}>자동 (키 형식으로 판별)</option>
+            <option value="openai"    ${cfg.aiProvider==='openai'?'selected':''}>OpenAI</option>
+            <option value="anthropic" ${cfg.aiProvider==='anthropic'?'selected':''}>Anthropic</option>
+            <option value="gemini"    ${cfg.aiProvider==='gemini'?'selected':''}>Gemini</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field__lbl">API Key</label>
+          <div class="field__row">
+            <input class="field__input ${cfg.aiApiKey?'is-saved':''}" id="aiKey" type="password"
+                   placeholder="sk-..., sk-ant-..., AIza... 등"
+                   value="${esc(cfg.aiApiKey)}"/>
+            <button class="btn" id="aiToggle" type="button" title="키 표시 전환">표시</button>
+          </div>
+          <div class="field__hint">현재 저장 상태: <b>${cfg.aiApiKey ? mask(cfg.aiApiKey) : '미설정 (데모 모드)'}</b></div>
+        </div>
+
+        <div class="field">
+          <label class="switch ${cfg.useReal?'is-on':''}" id="useRealSw">
+            <span class="switch__track"></span>
+            <div>
+              <div class="switch__lbl">실제 API 사용</div>
+              <div class="field__hint">꺼두면 모든 호출이 데모 데이터로 처리됩니다.</div>
+            </div>
+          </label>
+        </div>
+
+        <div style="display:flex; gap:8px">
+          <button class="btn btn--primary" id="saveAi">저장</button>
+          <button class="btn btn--danger" id="clearAi">키 삭제</button>
+        </div>
+
+        <div class="field__hint" style="margin-top:14px; padding:12px; background:var(--bg-sunken); border-radius:8px">
+          <b style="color:var(--ink); font-weight:650">보안 안내</b><br/>
+          키는 이 브라우저의 localStorage에만 저장됩니다. 공용 PC에서는 사용을 권장하지 않으며, 다른 사람과 화면을 공유할 때는 [표시]를 끄세요.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__hd"><h3>연결 상태</h3><span class="muted">현재 설정 요약</span></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px">
+        <div class="fc-cell">
+          <div class="fc-cell__h">YouTube API</div>
+          <div class="fc-cell__v" style="font-size:14px">${cfg.youtubeApiKey ? '<span style="color:var(--ok)">설정 완료</span>' : '<span style="color:var(--ink-3)">미설정</span>'}</div>
+          <div class="fc-cell__r">${cfg.youtubeApiKey ? mask(cfg.youtubeApiKey) : '데모 데이터 사용 중'}</div>
+        </div>
+        <div class="fc-cell">
+          <div class="fc-cell__h">AI API</div>
+          <div class="fc-cell__v" style="font-size:14px">${cfg.aiApiKey ? '<span style="color:var(--ok)">설정 완료</span>' : '<span style="color:var(--ink-3)">미설정</span>'}</div>
+          <div class="fc-cell__r">${cfg.aiApiKey ? `${cfg.aiProvider} · ${mask(cfg.aiApiKey)}` : '데모 데이터 사용 중'}</div>
+        </div>
+        <div class="fc-cell">
+          <div class="fc-cell__h">실제 API 사용</div>
+          <div class="fc-cell__v" style="font-size:14px">${cfg.useReal ? '<span style="color:var(--ok)">활성</span>' : '<span style="color:var(--ink-3)">비활성</span>'}</div>
+          <div class="fc-cell__r">${cfg.useReal ? '키가 있으면 실호출' : '항상 데모 모드'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Toggle visibility
+  const setEye = (input, btn) => {
+    btn.addEventListener('click', () => {
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.textContent = showing ? '표시' : '가리기';
+    });
+  };
+  setEye(document.getElementById('ytKey'), document.getElementById('ytToggle'));
+  setEye(document.getElementById('aiKey'), document.getElementById('aiToggle'));
+
+  document.getElementById('saveYt').addEventListener('click', () => {
+    const k = document.getElementById('ytKey').value.trim();
+    if (k && !/^AIza[0-9A-Za-z_-]{20,}$/.test(k)){
+      if (!confirm('일반적인 YouTube API 키 형식(AIza...)이 아닙니다. 그래도 저장할까요?')) return;
+    }
+    SettingsCfg.save({ youtubeApiKey: k });
+    App.setRegion(document.getElementById('defaultRegion').value);
+    toast('YouTube 설정을 저장했습니다');
+    renderSettings();
+  });
+  document.getElementById('clearYt').addEventListener('click', () => {
+    SettingsCfg.save({ youtubeApiKey: '' }); toast('YouTube 키를 삭제했습니다'); renderSettings();
+  });
+
+  document.getElementById('saveAi').addEventListener('click', () => {
+    const k = document.getElementById('aiKey').value.trim();
+    const p = document.getElementById('aiProvider').value;
+    SettingsCfg.save({ aiApiKey: k, aiProvider: p });
+    toast('AI 설정을 저장했습니다');
+    renderSettings();
+  });
+  document.getElementById('clearAi').addEventListener('click', () => {
+    SettingsCfg.save({ aiApiKey: '' }); toast('AI 키를 삭제했습니다'); renderSettings();
+  });
+
+  const sw = document.getElementById('useRealSw');
+  sw.addEventListener('click', () => {
+    const next = !sw.classList.contains('is-on');
+    sw.classList.toggle('is-on', next);
+    SettingsCfg.save({ useReal: next });
+    toast(next ? '실제 API 사용을 켰습니다 (키가 있으면 실호출)' : '데모 모드로 전환했습니다');
+  });
+}
+
+/* ─────────────── Util ─────────────── */
+function scoreColor(s){ if (s >= 70) return 'var(--ok)'; if (s >= 50) return 'var(--accent)'; if (s >= 35) return 'var(--warn)'; return 'var(--danger)'; }
+function verdict(s){ if (s >= 75) return '강한 상승 가능성'; if (s >= 60) return '상승 신호 누적'; if (s >= 45) return '관망 가능'; return '신호 약함'; }
+function riskLabel(l){ return l==='high'?'주의 가능성':l==='med'?'보통':'낮음'; }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return esc(s); }
+function timeAgo(ts){
+  const d = Date.now() - ts; const m = Math.floor(d/60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m/60);
+  if (h < 24) return `${h}시간 전`;
+  const day = Math.floor(h/24);
+  if (day < 7) return `${day}일 전`;
+  return new Date(ts).toLocaleDateString('ko-KR');
+}
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('is-show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> el.classList.remove('is-show'), 1800);
+}
+function updateNavCounts(){ document.getElementById('navHistCount').textContent = API.history.list().length; }
+
+/* ─────────────── Bootstrap ─────────────── */
+function bootstrap(){
+  // Region dropdown
+  const regionMenu = document.getElementById('regionMenu');
+  regionMenu.innerHTML = Gen.COUNTRIES.map(c => {
+    const tc = Gen.thumbColors('flag:'+c.code);
+    return `<div class="menu__item ${c.code===App.region?'is-active':''}" data-code="${c.code}">
+      <div class="ctry-iso" style="--g1:${tc.g1}; --g2:${tc.g2}; width:28px; height:20px; border-radius:4px; font-size:9.5px">${c.code}</div>
+      <div>${c.name}</div>
+    </div>`;
+  }).join('');
+  const regionBtn = document.getElementById('regionBtn');
+  regionBtn.addEventListener('click', e => { e.stopPropagation(); regionMenu.classList.toggle('is-open'); });
+  document.addEventListener('click', () => regionMenu.classList.remove('is-open'));
+  regionMenu.addEventListener('click', e => {
+    const item = e.target.closest('.menu__item'); if (!item) return;
+    App.setRegion(item.dataset.code);
+    regionMenu.classList.remove('is-open');
+    regionMenu.querySelectorAll('.menu__item').forEach(x => x.classList.toggle('is-active', x.dataset.code===item.dataset.code));
+  });
+  const c0 = Gen.COUNTRIES.find(x=>x.code===App.region) || Gen.COUNTRIES[0];
+  document.getElementById('regionIso').textContent = c0.code;
+  document.getElementById('regionName').textContent = c0.name;
+  App.region = c0.code;
+
+  // Nav
+  document.querySelectorAll('.nav__item[data-view]').forEach(el => {
+    el.addEventListener('click', () => {
+      App.go(el.dataset.view);
+      document.getElementById('sb').classList.remove('is-open');
+      document.getElementById('scrim').classList.remove('is-show');
+    });
+  });
+  document.querySelector('[data-action="reset"]').addEventListener('click', () => {
+    if (confirm('저장된 모든 분석 기록을 삭제합니다 (API 키는 유지됩니다). 계속할까요?')){
+      API.history.clear(); updateNavCounts(); toast('데이터가 초기화되었습니다'); App.go('home');
+    }
+  });
+  document.getElementById('hdSettings').addEventListener('click', () => App.go('settings'));
+
+  // Mobile
+  document.getElementById('burger').addEventListener('click', () => { document.getElementById('sb').classList.add('is-open'); document.getElementById('scrim').classList.add('is-show'); });
+  document.getElementById('scrim').addEventListener('click', () => { document.getElementById('sb').classList.remove('is-open'); document.getElementById('scrim').classList.remove('is-show'); });
+
+  // Top search
+  const top = document.getElementById('topSearch');
+  top.addEventListener('keydown', e => { if (e.key === 'Enter' && top.value.trim()){ App.analyzeAndShow(top.value.trim()); top.blur(); } });
+
+  // 설정 뱃지 초기화
+  SettingsCfg.save({}); // triggers badge sync
+
+  updateNavCounts();
+  render();
+}
+document.addEventListener('DOMContentLoaded', bootstrap);
+</script>
+</body>
+</html>
