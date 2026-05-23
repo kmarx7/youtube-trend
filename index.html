@@ -1984,13 +1984,15 @@ async function renderAlgorithm(){
       </div>
     </div>
   `;
-  document.getElementById('algoUrlForm').addEventListener('submit', e=>{
+  document.getElementById('algoUrlForm').addEventListener('submit', async e=>{
     e.preventDefault();
     const url = document.getElementById('algoUrlInput').value.trim();
     if (!url) return;
     const el = document.getElementById('algoUrlResult');
     el.innerHTML = '<div class="skeleton" style="height:280px;margin-top:14px;border-radius:12px;border:1px solid var(--line)"></div>';
-    setTimeout(()=>{ el.innerHTML = renderUrlAlgoReport(genUrlAlgoReport(url), url); }, 700);
+    const ytId = parseYtId(url);
+    const rv = ytId ? await API.videoById(ytId) : null;
+    el.innerHTML = renderUrlAlgoReport(genUrlAlgoReport(url, rv), url);
   });
 }
 function treemap(factors){
@@ -2465,25 +2467,45 @@ function genUrlSuccessReport(url, rv=null){
            title, channel, thumbUrl, pubAgoH, isReal:!!rv };
 }
 
-function genUrlAlgoReport(url){
+function genUrlAlgoReport(url, rv=null){
   const ytId = parseYtId(url);
   const seed = ytId || url;
   const r = Gen.rng(Gen.hash('url_a:'+seed));
-  const views     = Math.round(50000 + r()*8000000);
-  const ctr       = +(2+r()*11).toFixed(1);
-  const retention = +(25+r()*55).toFixed(1);
+
+  const views     = rv?.views       ?? Math.round(50000 + r()*8000000);
+  const likes     = rv?.likes       ?? null;
+  const dur       = rv?.durationSec ?? null;
+  const pubAgoH   = rv?.publishedAgoH ?? null;
+  const title     = rv?.title       ?? null;
+  const channel   = rv?.channel     ?? null;
+  const thumbUrl  = rv?.thumb?.url  ?? null;
+  const ctr       = rv?.ctr         ?? +(2+r()*11).toFixed(1);
+  const retention = rv?.retention   ?? +(25+r()*55).toFixed(1);
   const vel       = Math.min(100, Math.round(r()*80));
-  const score     = Math.min(99, Math.round(ctr*4 + retention*0.7 + Math.log10(views)*3));
+  const score     = Math.min(99, Math.round(ctr*4 + retention*0.7 + Math.log10(Math.max(views,1))*3));
+
   const algoFactors = [
-    {t:'클릭률(CTR)',          w:22, score:Math.round(Math.min(100,ctr*7)),   d:`추정 CTR ${ctr}%는 ${ctr>=7?'우수 수준으로 알고리즘 추천 확장 신호가 강합니다':'개선이 필요합니다. 썸네일·제목을 점검해보세요'}.`},
-    {t:'평균 시청 시간(AVD)',  w:20, score:Math.round(40+r()*50),             d:`영상 길이 대비 실제 시청 시간 비율이 콘텐츠 품질 신호로 작용합니다.`},
-    {t:'시청 유지율',          w:18, score:Math.round(Math.min(100,retention)),d:`추정 유지율 ${retention}%로 인트로 30초 이탈 곡선이 핵심입니다.`},
-    {t:'세션 체류',            w:14, score:Math.round(40+r()*50),             d:`영상 종료 후 플랫폼 이탈 여부가 채널 신뢰도에 누적될 가능성이 있습니다.`},
-    {t:'반응 신호',            w:10, score:Math.round(45+r()*50),             d:`좋아요·댓글 흐름이 주제 권위로 누적될 가능성이 있습니다.`},
-    {t:'신선도',               w:8,  score:Math.round(40+r()*55),             d:`발행 직후 가속 구간 성과가 장기 노출량을 결정할 가능성이 큽니다.`},
-    {t:'채널 주제 권위',       w:8,  score:Math.round(55+r()*40),             d:`채널이 이 주제를 일관되게 다뤄왔는지가 경쟁 채널 대비 우선 노출에 영향을 줍니다.`},
+    { t:'클릭률(CTR)', w:22, score:Math.round(Math.min(100,ctr*7)),
+      d:`추정 CTR ${ctr}%는 ${ctr>=7?'우수 수준으로 알고리즘 추천 확장 신호가 강합니다':'개선이 필요합니다. 썸네일·제목을 점검해보세요'}.` },
+    { t:'평균 시청 시간(AVD)', w:20, score:Math.round(40+r()*50),
+      d: dur ? `영상 길이 ${Gen.durStr(dur)} 기준 시청 시간 비율이 콘텐츠 품질 신호로 작용합니다.`
+             : `영상 길이 대비 실제 시청 시간 비율이 콘텐츠 품질 신호로 작용합니다.` },
+    { t:'시청 유지율', w:18, score:Math.round(Math.min(100,retention)),
+      d:`추정 유지율 ${retention}%로 인트로 30초 이탈 곡선이 핵심입니다.` },
+    { t:'세션 체류', w:14, score:Math.round(40+r()*50),
+      d:`영상 종료 후 플랫폼 이탈 여부가 채널 신뢰도에 누적될 가능성이 있습니다.` },
+    { t:'반응 신호', w:10, score:Math.round(45+r()*50),
+      d: likes ? `좋아요 ${Gen.viewStr(likes)}개 — 조회수 대비 ${(likes/Math.max(views,1)*100).toFixed(1)}% 참여율이 주제 권위로 누적될 가능성이 있습니다.`
+               : `좋아요·댓글 흐름이 주제 권위로 누적될 가능성이 있습니다.` },
+    { t:'신선도', w:8, score:Math.round(40+r()*55),
+      d: pubAgoH ? `업로드 ${pubAgoH}시간 전 — 발행 직후 가속 구간 성과가 장기 노출량을 결정할 가능성이 큽니다.`
+                 : `발행 직후 가속 구간 성과가 장기 노출량을 결정할 가능성이 큽니다.` },
+    { t:'채널 주제 권위', w:8, score:Math.round(55+r()*40),
+      d: channel ? `${channel} 채널이 이 주제를 일관되게 다뤄왔는지가 경쟁 채널 대비 우선 노출에 영향을 줍니다.`
+                 : `채널이 이 주제를 일관되게 다뤄왔는지가 경쟁 채널 대비 우선 노출에 영향을 줍니다.` },
   ];
-  return { ytId, views, ctr, retention, vel, score, algoFactors };
+  return { ytId, views, ctr, retention, vel, score, algoFactors,
+           title, channel, thumbUrl, pubAgoH, likes, isReal:!!rv };
 }
 
 function renderUrlSuccessReport(d, url){
@@ -2520,13 +2542,19 @@ function renderUrlSuccessReport(d, url){
 function renderUrlAlgoReport(d, url){
   const totalW = d.algoFactors.reduce((s,f)=>s+f.w,0);
   return `<div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
-    <div style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink)">
-      <b>분석 대상 URL:</b> <span style="font-family:var(--mono);word-break:break-all">${esc(url)}</span>${d.ytId?` &nbsp;·&nbsp; <b>영상 ID:</b> <span style="font-family:var(--mono)">${esc(d.ytId)}</span>`:''}
+    <div style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink);display:flex;align-items:flex-start;gap:10px">
+      ${d.thumbUrl?`<img src="${escAttr(d.thumbUrl)}" style="width:80px;height:45px;object-fit:cover;border-radius:5px;flex:none" loading="lazy"/>`:''}
+      <div style="min-width:0">
+        ${d.title?`<div style="font-weight:650;font-size:13px;color:var(--ink);margin-bottom:3px">${esc(d.title)}</div>`:''}
+        ${d.channel?`<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:4px">${esc(d.channel)}</div>`:''}
+        <div><b>URL:</b> <span style="font-family:var(--mono);word-break:break-all;font-size:11px">${esc(url)}</span></div>
+        ${d.isReal?'<span class="chip chip--ok" style="font-size:10px;padding:2px 7px;margin-top:5px;display:inline-block">실제 데이터</span>':'<span class="chip" style="font-size:10px;padding:2px 7px;margin-top:5px;display:inline-block">추정 데이터</span>'}
+      </div>
     </div>
     <div class="scores" style="grid-template-columns:repeat(4,1fr)">
+      <div class="score"><div class="score__hd">${d.isReal?'실제 조회수':'추정 조회수'}</div><div class="score__num" style="font-size:20px">${Gen.viewStr(d.views)}</div><div class="score__note">${d.isReal?'YouTube API':'추정'}</div></div>
       <div class="score"><div class="score__hd">CTR 추정</div><div class="score__num" style="font-size:20px">${d.ctr}%</div><div class="score__note">${d.ctr>=7?'우수':d.ctr>=4?'보통':'개선 필요'}</div></div>
       <div class="score"><div class="score__hd">유지율 추정</div><div class="score__num" style="font-size:20px">${d.retention}%</div><div class="score__note">${d.retention>=50?'우수':d.retention>=35?'보통':'개선 필요'}</div></div>
-      <div class="score"><div class="score__hd">속도 지수</div><div class="score__num" style="font-size:20px">${d.vel}</div><div class="score__note">/ 100</div></div>
       <div class="score"><div class="score__hd">알고리즘 점수</div><div class="score__num" style="font-size:20px">${d.score}</div><div class="score__note">/ 100</div></div>
     </div>
     <div class="card" style="padding:16px">
