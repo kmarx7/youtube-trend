@@ -398,7 +398,7 @@
   /* Modal */
   .modal-bg{position:fixed;inset:0;background:rgba(15,18,30,.52);z-index:150;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .18s}
   .modal-bg.is-open{opacity:1;pointer-events:auto}
-  .modal-box{background:#fff;border-radius:var(--r-xl);box-shadow:0 24px 80px rgba(15,18,30,.22);width:100%;max-width:720px;max-height:88vh;overflow:auto;transform:translateY(10px);transition:transform .18s;display:flex;flex-direction:column}
+  .modal-box{background:#fff;border-radius:var(--r-xl);box-shadow:0 24px 80px rgba(15,18,30,.22);width:100%;max-width:900px;max-height:92vh;overflow:auto;transform:translateY(10px);transition:transform .18s;display:flex;flex-direction:column}
   .modal-bg.is-open .modal-box{transform:translateY(0)}
   .modal-hd{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:1}
   .modal-hd__t{font-size:15px;font-weight:700;flex:1;letter-spacing:-0.01em}
@@ -406,6 +406,12 @@
   .modal-hd__x{width:30px;height:30px;border-radius:8px;background:var(--bg-sunken);display:flex;align-items:center;justify-content:center;color:var(--ink-3);flex:none;cursor:pointer;border:0}
   .modal-hd__x:hover{background:var(--line-strong)}
   .modal-bd{padding:20px 22px 24px}
+  .modal-player{position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#0f0f0f;margin-bottom:18px}
+  .modal-player iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+  .modal-player__link{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:oklch(0.14 0.02 262);color:#fff;font-size:13.5px;font-weight:600;gap:10px;text-decoration:none;transition:background .15s}
+  .modal-player__link:hover{background:oklch(0.2 0.04 262)}
+  .modal-player__icon{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center}
+  .modal-player__sub{font-size:11.5px;font-weight:400;color:rgba(255,255,255,.6);margin-top:2px}
   /* Topic grid */
   .topic-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
   .topic-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
@@ -1546,14 +1552,16 @@ function render(){
 
 function thumb(v, opts={}){
   const dur = Gen.durStr(v.durationSec);
-  const isReal = v.thumb && v.thumb.url;
+  // Real thumbnail: explicit URL or YouTube CDN (real videos only, not mock IDs)
+  const thumbUrl = v.thumb?.url || (v.ytId && v.isReal ? `https://i.ytimg.com/vi/${escAttr(v.ytId)}/mqdefault.jpg` : null);
+  const isReal = !!thumbUrl;
   const bgStyle = isReal
-    ? `background-image:url('${escAttr(v.thumb.url)}');background-size:cover;background-position:center`
-    : `--g1:${v.thumb.g1}; --g2:${v.thumb.g2}`;
+    ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center`
+    : `--g1:${v.thumb?.g1||'oklch(0.7 0.12 260)'}; --g2:${v.thumb?.g2||'oklch(0.55 0.16 220)'}`;
   return `
     <div class="thumb${isReal?' thumb--real':''}" style="${bgStyle}">
       ${opts.rank ? `<div class="thumb__rank">#${opts.rank}</div>` : ''}
-      ${opts.cat !== false ? `<div class="thumb__cat">${v.category.name}</div>` : ''}
+      ${opts.cat !== false ? `<div class="thumb__cat">${esc(v.category.name)}</div>` : ''}
       <div class="thumb__play">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       </div>
@@ -1562,8 +1570,10 @@ function thumb(v, opts={}){
   `;
 }
 function videoCard(v, opts={}){
+  const _key = v.id || ('v_'+Gen.hash(v.title+':'+v.channel).toString(36));
+  VidRegistry[_key] = v;
   return `
-    <div class="vid-card" data-kw="${escAttr(v.title)}">
+    <div class="vid-card" data-kw="${escAttr(v.title)}" data-vplay="${escAttr(_key)}">
       ${thumb(v, { rank: opts.rank, cat:true })}
       <div class="vid-card__body">
         <div class="vid-card__t">${esc(v.title)}</div>
@@ -1585,8 +1595,10 @@ function videoCard(v, opts={}){
   `;
 }
 function videoRow(v){
+  const _key = v.id || ('v_'+Gen.hash(v.title+':'+v.channel).toString(36));
+  VidRegistry[_key] = v;
   return `
-    <div class="vid-row" data-kw="${escAttr(v.title)}">
+    <div class="vid-row" data-kw="${escAttr(v.title)}" data-vplay="${escAttr(_key)}">
       <div class="vid-row__rk ${v.rank<=3?'vid-row__rk--top':''}">${v.rank}</div>
       <div class="vid-row__thumb">${thumb(v, { cat:false })}</div>
       <div class="vid-row__main">
@@ -3021,14 +3033,39 @@ const VidModal = {
     document.getElementById('modalClose').addEventListener('click', ()=>this.close());
     document.getElementById('vidModal').addEventListener('click', e=>{ if(e.target===document.getElementById('vidModal')) this.close(); });
   },
-  open(title, sub, html){
+  open(title, sub, html, ytId, searchUrl){
+    let playerHtml;
+    if (ytId) {
+      // Real YouTube ID — embed and autoplay
+      playerHtml = `<div class="modal-player">
+        <iframe src="https://www.youtube.com/embed/${escAttr(ytId)}?autoplay=1&rel=0&modestbranding=1"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </div>`;
+    } else if (searchUrl) {
+      // Demo/mock video — show YouTube search link
+      playerHtml = `<div class="modal-player">
+        <a class="modal-player__link" href="${escAttr(searchUrl)}" target="_blank" rel="noopener noreferrer">
+          <div class="modal-player__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <span>YouTube에서 이 영상 검색하기</span>
+          <span class="modal-player__sub">데모 모드 · YouTube API 키 연결 시 바로 재생됩니다</span>
+        </a>
+      </div>`;
+    } else {
+      playerHtml = '';
+    }
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalSub').textContent = sub||'';
-    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalBody').innerHTML = playerHtml + html;
     document.getElementById('vidModal').classList.add('is-open');
     document.body.style.overflow='hidden';
   },
   close(){
+    // Stop video before hiding — clears iframe src so audio stops immediately
+    const iframe = document.querySelector('#modalBody iframe');
+    if (iframe) iframe.src = '';
     document.getElementById('vidModal').classList.remove('is-open');
     document.body.style.overflow='';
   }
@@ -3037,7 +3074,11 @@ const VidModal = {
 function openVidModal(type, v){
   const r = Gen.rng(Gen.hash('modal:'+type+':'+v.id));
   const titles = { summary:'동영상 요약', script:'스크립트 요약', algo:'알고리즘 분석', success:'성공요인 분석' };
-  VidModal.open(titles[type]||type, v.title, genModalContent(type, v, r));
+  const key = v.id || ('v_'+Gen.hash(v.title+':'+v.channel).toString(36));
+  // Real YouTube ID only for real API results — mock IDs cannot embed
+  const ytVid = (v.ytId && v.isReal) ? v.ytId : null;
+  const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(v.title);
+  VidModal.open(titles[type]||type, v.title, genModalContent(type, v, r), ytVid, searchUrl);
 }
 
 function genModalContent(type, v, r){
@@ -3566,6 +3607,18 @@ function bootstrap(){
     const v = VidRegistry[btn.dataset.key];
     if (!v) return;
     openVidModal(va, v);
+  }, { capture: true });
+
+  // Video card/row click → open player modal (capture phase, before bubble [data-kw] handlers)
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-va]')) return; // action buttons handled separately
+    if (e.target.closest('.modal-player__link')) return; // YouTube search link — let browser navigate
+    const card = e.target.closest('[data-vplay]');
+    if (!card) return;
+    e.stopPropagation(); // prevent per-page [data-kw] bubble handlers from also firing
+    const v = VidRegistry[card.dataset.vplay];
+    if (!v) return;
+    openVidModal('summary', v);
   }, { capture: true });
 
   // ESC key closes modal
