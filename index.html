@@ -725,7 +725,26 @@ const API = (() => {
   }
 
   return {
-    async summary(region){ await wait(80); return Gen.summary(region); },
+    async summary(region){
+      const cfg = SettingsCfg.load();
+      if (cfg.useReal && cfg.youtubeApiKey){
+        try {
+          const real = await _fetchYouTubeTrending({ region, window:'24h' });
+          if (real && real.length){
+            const r = Gen.rng(Gen.hash('sm:'+region+':'+new Date().toDateString()));
+            return {
+              totalTracked: 8200 + Math.floor(r()*1800),
+              risingNow:    real.length,
+              topCategory:  real[0]?.category?.name || '—',
+              avgCtr:       +(real.reduce((s,v)=>s+v.ctr,0)/real.length).toFixed(1),
+              top: real.slice(0,8)
+            };
+          }
+        } catch(e){ toast('YouTube API 오류: '+e.message); }
+      }
+      await wait(80);
+      return Gen.summary(region);
+    },
 
     async trending(opts){
       const cfg = SettingsCfg.load();
