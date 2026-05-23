@@ -456,6 +456,28 @@
   .ch-remove-btn:hover{background:var(--danger-soft);color:var(--danger);border-color:transparent}
   .cmp-score-bar{height:6px;background:var(--bg-sunken);border-radius:99px;overflow:hidden;margin-top:4px}
   .cmp-score-bar span{display:block;height:100%;border-radius:99px}
+
+  /* AI Insight */
+  .ai-section{border:1.5px solid oklch(0.87 0.06 262);border-radius:var(--r-lg);padding:20px;background:linear-gradient(145deg,oklch(0.975 0.012 262) 0%,#fff 100%);margin-bottom:18px}
+  .ai-section__hd{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .ai-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:700;background:linear-gradient(135deg,oklch(0.88 0.08 295),oklch(0.85 0.09 250));color:#fff;letter-spacing:0.02em}
+  .ai-section__t{font-size:14px;font-weight:700;color:var(--ink)}
+  .ai-section__sub{font-size:12px;color:var(--ink-3);margin-left:auto}
+  .ai-summary{font-size:13.5px;color:var(--ink-2);line-height:1.7;margin-bottom:16px;padding:14px 16px;background:#fff;border-radius:10px;border:1px solid var(--line)}
+  .ai-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:860px){.ai-cols{grid-template-columns:1fr}}
+  .ai-col__t{font-size:11.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px}
+  .ai-opp{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+  .ai-opp:last-child{border-bottom:0;padding-bottom:0}
+  .ai-opp::before{content:"✦";color:oklch(0.55 0.13 155);font-size:10px;margin-top:3px;flex:none}
+  .ai-action{display:flex;align-items:flex-start;gap:8px;padding:9px;border-radius:8px;background:#fff;border:1px solid var(--line);margin-bottom:6px;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+  .ai-action:last-child{margin-bottom:0}
+  .ai-action__num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+  .ai-idea-card{padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;margin-bottom:6px}
+  .ai-idea-card:last-child{margin-bottom:0}
+  .ai-idea-card__t{font-size:13px;font-weight:650;margin-bottom:4px}
+  .ai-idea-card__d{font-size:12px;color:var(--ink-3);line-height:1.5}
+  .ai-idea-card__fmt{display:inline-block;margin-top:5px;font-size:10.5px;padding:2px 7px;border-radius:99px;background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
 </style>
 </head>
 <body>
@@ -704,6 +726,23 @@ const API = (() => {
     };
   }
 
+  /* OpenAI Chat Completions fetch */
+  async function openAiFetch(apiKey, messages, model='gpt-4o-mini'){
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+apiKey },
+      body: JSON.stringify({ model, messages, max_tokens:900, temperature:0.7 })
+    });
+    if (!res.ok){
+      const txt = await res.text().catch(()=>'');
+      let msg = `HTTP ${res.status}`;
+      try { const j=JSON.parse(txt); msg=j.error?.message||msg; } catch(_){}
+      throw new Error(msg);
+    }
+    const json = await res.json();
+    return json.choices?.[0]?.message?.content || '';
+  }
+
   /* 인증된 YouTube Data API fetch */
   async function ytFetch(path, key){
     const sep = path.includes('?') ? '&' : '?';
@@ -845,6 +884,39 @@ const API = (() => {
         return item ? ytItemToVideo(item, 1) : null;
       } catch(e){ toast('YouTube API 오류: '+e.message); return null; }
     },
+    async aiInsight(keyword, data){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      const prompt = `당신은 유튜브 트렌드 분석 전문가입니다. 아래 키워드 분석 데이터를 보고 크리에이터에게 실질적인 인사이트를 한국어로 제공하세요.
+
+키워드: "${keyword}"
+카테고리: ${data.category.name}
+종합 가능성 점수: ${data.scores.overall}/100
+성장 가능성: ${data.scores.growth}/100  사업화 가능성: ${data.scores.business}/100
+콘텐츠 활용성: ${data.scores.content}/100  리스크: ${data.scores.risk}/100
+
+아래 JSON 형식으로만 답변하세요 (다른 텍스트 없이):
+{
+  "summary": "이 키워드의 유튜브 트렌드 현황 2~3문장. 확정 예측이 아닌 '가능성', '추정', '신호' 표현 사용.",
+  "opportunities": ["기회 포인트 1", "기회 포인트 2", "기회 포인트 3"],
+  "contentIdeas": [
+    {"title": "영상 제목 아이디어", "desc": "간략한 기획 설명", "format": "쇼츠 또는 롱폼 또는 라이브"},
+    {"title": "영상 제목 아이디어 2", "desc": "간략한 기획 설명", "format": "쇼츠 또는 롱폼"},
+    {"title": "영상 제목 아이디어 3", "desc": "간략한 기획 설명", "format": "롱폼"}
+  ],
+  "actionItems": ["즉시 실행 가능한 액션 1", "액션 2", "액션 3"]
+}`;
+      try {
+        const text = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content:'유튜브 트렌드 분석 AI. 반드시 유효한 JSON만 출력.' },
+          { role:'user', content:prompt }
+        ]);
+        const m = text.match(/\{[\s\S]*\}/);
+        if (!m) throw new Error('JSON 파싱 실패');
+        return JSON.parse(m[0]);
+      } catch(e){ toast('AI 인사이트 오류: '+e.message); return null; }
+    },
+
     async relatedVideos(keyword, n){ await wait(120); return Gen.relatedVideos(keyword, n||10); },
     async success(region){ await wait(140); return Gen.success(region); },
     async algorithm(){ await wait(120); return Gen.algorithm(); },
@@ -1920,6 +1992,22 @@ async function renderAnalysis(){
       </div>
     </div>
 
+    <!-- AI 인사이트 섹션 (비동기 로드) -->
+    <div id="aiInsightSection" class="ai-section" style="display:none">
+      <div class="ai-section__hd">
+        <span class="ai-badge">✦ AI</span>
+        <span class="ai-section__t">AI 심층 인사이트</span>
+        <span class="ai-section__sub">OpenAI GPT-4o mini · 가능성 기반</span>
+      </div>
+      <div id="aiInsightBody">
+        <div class="skeleton" style="height:80px;border-radius:10px;margin-bottom:14px"></div>
+        <div class="ai-cols">
+          <div><div class="skeleton" style="height:14px;width:60%;margin-bottom:10px"></div><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+          <div><div class="skeleton" style="height:14px;width:60%;margin-bottom:10px"></div><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 관련 유튜브 영상 10개 -->
     <div class="card">
       <div class="card__hd">
@@ -1936,12 +2024,49 @@ async function renderAnalysis(){
   document.getElementById('saveAnalysis').addEventListener('click', () => toast('이번 결과가 히스토리에 저장되었습니다'));
   main.querySelectorAll('[data-kw]').forEach(b => b.addEventListener('click', () => App.analyzeAndShow(b.dataset.kw)));
 
-  // 관련 영상 비동기 로드
-  const rel = await API.relatedVideos(a.keyword, 10);
+  // 관련 영상 + AI 인사이트 병렬 로드
+  const cfg = SettingsCfg.load();
+  if (cfg.aiApiKey) document.getElementById('aiInsightSection').style.display = '';
+
+  const [rel, aiData] = await Promise.all([
+    API.relatedVideos(a.keyword, 10),
+    API.aiInsight(a.keyword, a)
+  ]);
+
   const grid = document.getElementById('relVidGrid');
   if (grid){
     grid.innerHTML = rel.map(v => videoCard(v, { rank: v.rank })).join('');
     grid.querySelectorAll('[data-kw]').forEach(el => el.addEventListener('click', () => App.analyzeAndShow(el.dataset.kw)));
+  }
+
+  const aiBody = document.getElementById('aiInsightBody');
+  if (aiBody && aiData){
+    aiBody.innerHTML = `
+      <div class="ai-summary">${esc(aiData.summary||'')}</div>
+      <div class="ai-cols">
+        <div>
+          <div class="ai-col__t">기회 포인트</div>
+          <div>
+            ${(aiData.opportunities||[]).map(o=>`<div class="ai-opp">${esc(o)}</div>`).join('')}
+          </div>
+          <div style="margin-top:16px">
+            <div class="ai-col__t">즉시 실행 액션</div>
+            ${(aiData.actionItems||[]).map((a,i)=>`<div class="ai-action"><div class="ai-action__num">${i+1}</div><div>${esc(a)}</div></div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div class="ai-col__t">콘텐츠 아이디어</div>
+          ${(aiData.contentIdeas||[]).map(ci=>`
+            <div class="ai-idea-card">
+              <div class="ai-idea-card__t">${esc(ci.title||'')}</div>
+              <div class="ai-idea-card__d">${esc(ci.desc||'')}</div>
+              ${ci.format ? `<span class="ai-idea-card__fmt">${esc(ci.format)}</span>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+  } else if (aiBody && !aiData && cfg.aiApiKey){
+    aiBody.innerHTML = '<div style="color:var(--ink-3);font-size:13px;padding:8px 0">AI 인사이트를 불러오지 못했습니다. API 키를 확인해주세요.</div>';
   }
 }
 
