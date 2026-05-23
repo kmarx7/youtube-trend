@@ -1106,6 +1106,45 @@ const API = (() => {
       } catch(e){ return null; }
     },
 
+    /* ── 키워드 관련 영상 검색 (아이디어 생성기용) ── */
+    async searchKeywordVideos(keyword, maxResults=10){
+      const cfg = SettingsCfg.load();
+      if (!cfg.youtubeApiKey || !cfg.useReal) return [];
+      try {
+        const cacheKey = `kvsearch:${keyword}:${maxResults}`;
+        return await cacheFetch(cacheKey, async () => {
+          const searchJson = await ytFetch(
+            `search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=relevance&regionCode=${App.region}&maxResults=${maxResults}`,
+            cfg.youtubeApiKey
+          );
+          const ids = (searchJson.items||[]).map(i=>i.id?.videoId).filter(Boolean);
+          if (!ids.length) return [];
+          const videoJson = await ytFetch(
+            `videos?part=snippet,statistics,contentDetails&id=${ids.join(',')}`,
+            cfg.youtubeApiKey
+          );
+          return (videoJson.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+        }, 600_000);
+      } catch(e){ return []; }
+    },
+
+    /* ── AI 아이디어 (실제 영상 기반) ── */
+    async aiContentIdeasFromVideos(keyword, videos){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      try {
+        const vidSummary = videos.slice(0,10).map((v,i)=>
+          `${i+1}. "${v.title}" (조회수:${Gen.viewStr(v.views)}, 채널:${v.channel})`
+        ).join('\n');
+        const txt = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content:'유튜브 콘텐츠 전략 AI. 반드시 유효한 JSON만 출력.' },
+          { role:'user', content:`키워드: "${keyword}"\n\n관련 급상승 영상 TOP ${videos.length}:\n${vidSummary}\n\n위 영상들의 공통 패턴을 분석해 새로운 콘텐츠 전략을 제시하세요.\n한국어 (JSON):\n{"hook":"이 키워드의 핵심 후킹 포인트 분석 2문장","angles":["기존 영상과 차별화된 신선한 각도 1","각도 2","각도 3"],"seriesIdea":"시리즈 기획 아이디어 1가지 2~3문장","cta":"영상 말미 CTA 문구 예시","pattern":"인기 영상들의 공통 성공 패턴 1~2문장"}` }
+        ]);
+        const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
+        return JSON.parse(m[0]);
+      } catch(e){ return null; }
+    },
+
     /* ── 트렌드 모니터링 ── */
     async monitorScore(keyword){
       await wait(80);
@@ -1115,6 +1154,85 @@ const API = (() => {
       const prev  = Math.round(base*60 + Gen.rng(Gen.hash('msp:'+keyword))()* 40);
       const delta = score - prev;
       return { keyword, score, prev, delta, alert: score > 75 };
+    },
+
+    async monitorHistory(keyword){
+      // Generate 12-week simulated score history
+      const r = Gen.rng(Gen.hash('mh:'+keyword));
+      const base = Gen.rng(Gen.hash('msb:'+keyword))();
+      const points = [];
+      let v = Math.round(base*50 + 20);
+      for (let i=11; i>=0; i--){
+        const week = new Date(); week.setDate(week.getDate() - i*7);
+        const lbl = `${week.getMonth()+1}/${week.getDate()}`;
+        v = Math.max(5, Math.min(99, v + Math.round((r()-0.4)*18)));
+        points.push({ lbl, v });
+      }
+      return points;
+    },
+
+    async monitorReport(keyword){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      const score = Math.round(Gen.rng(Gen.hash('msb:'+keyword))()*60 + 30);
+      try {
+        const txt = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content:'유튜브 트렌드 분석 AI. 반드시 유효한 JSON만 출력.' },
+          { role:'user', content:`키워드: "${keyword}", 현재 가능성 점수: ${score}/100\n\n이 키워드의 현재 유튜브 트렌드 상황을 분석하고 요약 보고서를 작성하세요.\n한국어 (JSON):\n{"status":"현재 트렌드 상태 (급상승/상승세/안정/하락 중 하나)","summary":"트렌드 요약 2~3문장","reasons":["이 키워드가 주목받는 이유 1","이유 2"],"recommendation":"크리에이터를 위한 실행 권고 2문장"}` }
+        ]);
+        const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
+        return JSON.parse(m[0]);
+      } catch(e){ return null; }
+    },
+
+    /* ── 수익화 상위 채널 ── */
+    async topRevenueChannels(category){
+      const cfg = SettingsCfg.load();
+      const catMap = {
+        '교육':'edu','경제·재테크':'finance','과학·기술':'tech','뷰티·패션':'beauty',
+        '게임':'game','음악':'music','엔터테인먼트':'enter','푸드':'food',
+        '스포츠':'sport','여행':'travel','라이프스타일':'vlog','뉴스':'news','자동차':'auto'
+      };
+      const appCat = catMap[category] || 'enter';
+
+      if (cfg.youtubeApiKey && cfg.useReal){
+        try {
+          const cacheKey = `toprev:${appCat}`;
+          return await cacheFetch(cacheKey, async () => {
+            // Fetch most popular videos in category → extract top channels
+            const ytCatId = {edu:'27',finance:'25',tech:'28',beauty:'26',game:'20',music:'10',enter:'24',food:'22',sport:'17',travel:'19',vlog:'22',news:'25',auto:'2'}[appCat]||'24';
+            const json = await ytFetch(
+              `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${App.region}&videoCategoryId=${ytCatId}&maxResults=50`,
+              cfg.youtubeApiKey
+            );
+            const videos = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+            // Group by channel, pick channel with most views
+            const byChannel = {};
+            videos.forEach(v => {
+              if (!byChannel[v.channel] || v.views > byChannel[v.channel].topVideo.views)
+                byChannel[v.channel] = { channel:v.channel, topVideo:v, totalViews:v.views };
+            });
+            return Object.values(byChannel).sort((a,b)=>b.totalViews-a.totalViews).slice(0,10);
+          }, 600_000);
+        } catch(e){}
+      }
+      // Mock fallback
+      await wait(80);
+      const r = Gen.rng(Gen.hash('trc:'+category));
+      return Array.from({length:10}, (_,i) => {
+        const chNames = ['트렌드 채널 A','인사이트 TV','스마트 리뷰','데일리 크리에이터','글로벌 K','미래 채널','테크맵','한 끼 식탁','여행 기록사','코드 노트북','심야 토크룸','월급 라이프'];
+        const ch = chNames[i % chNames.length];
+        const v = Gen.makeVideoPublic ? null : null;
+        const mockV = {
+          id:'rv_'+i, ytId:null, isReal:false, title:Gen.CATEGORIES[0]?.id ? '' : '',
+          channel:ch, category:Gen.CATEGORIES.find(c=>c.id===appCat)||Gen.CATEGORIES[2],
+          views:Math.round(500000+r()*9500000/(i+1)), delta24h:Math.round(10000+r()*50000),
+          likes:Math.round(5000+r()*200000), ctr:+(3+r()*7).toFixed(1), retention:+(30+r()*50).toFixed(1),
+          avd:Math.round(120+r()*480), durationSec:Math.round(300+r()*1800), publishedAgoH:Math.round(1+r()*168),
+          thumb:Gen.thumbColors('trc:'+category+':'+i), score:Math.round(60+r()*39), rank:i+1
+        };
+        return { channel:ch, topVideo:mockV, totalViews:mockV.views };
+      });
     },
 
     /* ── 영상 최적화 ── */
@@ -1202,8 +1320,18 @@ const API = (() => {
 
     async channelInfo(urlOrHandle){
       const cfg = SettingsCfg.load();
-      const parsed = parseChannelId(urlOrHandle);
-      if (!parsed) return Gen.channelInfo(urlOrHandle);
+      let resolved = urlOrHandle;
+      // Support YouTube video URLs: extract channel from video
+      const vidId = parseYtId(urlOrHandle);
+      if (vidId && cfg.useReal && cfg.youtubeApiKey){
+        try {
+          const vJson = await ytFetch(`videos?part=snippet&id=${encodeURIComponent(vidId)}`, cfg.youtubeApiKey);
+          const item = (vJson.items||[])[0];
+          if (item?.snippet?.channelId) resolved = item.snippet.channelId;
+        } catch(_){}
+      }
+      const parsed = parseChannelId(resolved);
+      if (!parsed) return Gen.channelInfo(resolved);
 
       if (cfg.useReal && cfg.youtubeApiKey){
         try {
@@ -1714,7 +1842,11 @@ const App = {
     const c = Gen.COUNTRIES.find(x=>x.code===code);
     document.getElementById('regionIso').textContent = code;
     document.getElementById('regionName').textContent = c ? c.name : code;
-    render();
+    if (this.view === 'countries' || this.view === 'countryDetail') {
+      this.go('countryDetail', code);
+    } else {
+      render();
+    }
   },
 
   async analyzeAndShow(keyword){
@@ -1762,7 +1894,7 @@ function thumb(v, opts={}){
   const thumbUrl = v.thumb?.url || (v.ytId && v.isReal ? `https://i.ytimg.com/vi/${escAttr(v.ytId)}/mqdefault.jpg` : null);
   const isReal = !!thumbUrl;
   const bgStyle = isReal
-    ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center`
+    ? `background:url('${thumbUrl}') center/cover no-repeat, linear-gradient(135deg,${v.thumb?.g1||'oklch(0.7 0.12 260)'},${v.thumb?.g2||'oklch(0.55 0.16 220)'})`
     : `--g1:${v.thumb?.g1||'oklch(0.7 0.12 260)'}; --g2:${v.thumb?.g2||'oklch(0.55 0.16 220)'}`;
   return `
     <div class="thumb${isReal?' thumb--real':''}" style="${bgStyle}">
@@ -2717,6 +2849,14 @@ function renderChannel(){
     }
   }
 
+  const chInput = document.getElementById('chInput');
+  chInput.addEventListener('paste', () => {
+    setTimeout(() => {
+      const val = chInput.value.trim();
+      if (parseChannelId(val) || parseYtId(val)) document.getElementById('chForm').requestSubmit();
+    }, 0);
+  });
+
   document.getElementById('chForm').addEventListener('submit', async e => {
     e.preventDefault();
     const url = document.getElementById('chInput').value.trim();
@@ -2892,6 +3032,15 @@ function renderCompare(){
     [...document.querySelectorAll('.cmp-ch-input')].forEach((el,i)=>{ el.closest('.ch-input-row').querySelector('.ch-input-idx').textContent=i+1; el.dataset.idx=i; });
   });
 
+  document.getElementById('cmpInputs').addEventListener('paste', e => {
+    const inp = e.target.closest('.cmp-ch-input'); if (!inp) return;
+    setTimeout(() => {
+      const val = inp.value.trim();
+      if ((parseChannelId(val) || parseYtId(val)) && getInputValues().filter(Boolean).length >= 2)
+        document.getElementById('cmpForm').requestSubmit();
+    }, 0);
+  });
+
   document.getElementById('cmpForm').addEventListener('submit', async e => {
     e.preventDefault();
     const urls = getInputValues().filter(Boolean);
@@ -3060,7 +3209,7 @@ function renderCompareDetail(channels){
 function renderIdeas(){
   main.innerHTML = `
     <div class="page-head">
-      <div><h1>콘텐츠 아이디어 생성기</h1><p>트렌드 키워드를 입력하면 AI가 제목·태그·썸네일·업로드 시간을 추천합니다.</p></div>
+      <div><h1>콘텐츠 아이디어 생성기</h1><p>키워드를 입력하면 관련 인기 영상 10개를 분석해 AI가 콘텐츠 전략을 제안합니다.</p></div>
     </div>
     <div class="card" style="margin-bottom:22px">
       <div class="card__hd"><h3>키워드 입력</h3></div>
@@ -3076,11 +3225,37 @@ function renderIdeas(){
     const kw = document.getElementById('ideaInput').value.trim();
     if (!kw) return;
     const el = document.getElementById('ideaResult');
-    el.innerHTML = `<div class="skeleton" style="height:340px;border-radius:16px"></div>`;
-    const [data, aiData] = await Promise.all([API.contentIdeas(kw), API.aiContentIdeas(kw)]);
-    const days = ['월','화','수','목','금','토','일'];
-    const maxScore = Math.max(...data.uploadTimes.map(t=>t.score));
     el.innerHTML = `
+      <div class="card" style="margin-bottom:18px;padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div class="skeleton" style="width:20px;height:20px;border-radius:50%;flex:none"></div>
+          <div class="skeleton" style="height:16px;width:220px;border-radius:6px"></div>
+        </div>
+        <div class="skeleton" style="height:200px;border-radius:12px"></div>
+      </div>
+      <div class="skeleton" style="height:280px;border-radius:16px"></div>`;
+
+    // Fetch real trending videos for keyword in parallel with mock data
+    const [realVideos, data] = await Promise.all([
+      API.searchKeywordVideos(kw, 10),
+      API.contentIdeas(kw)
+    ]);
+    const hasReal = realVideos.length > 0;
+
+    const maxScore = Math.max(...data.uploadTimes.map(t=>t.score));
+
+    // Real video grid section
+    const videoSection = hasReal ? `
+      <div class="card" style="margin-bottom:18px">
+        <div class="card__hd">
+          <h3>관련 인기 영상 분석 (${realVideos.length}개)</h3>
+          <span class="muted chip chip--ok" style="font-size:10px">실제 YouTube 데이터</span>
+        </div>
+        <div class="vid-grid">${realVideos.map(v=>videoCard(v,{})).join('')}</div>
+      </div>` : '';
+
+    el.innerHTML = `
+      ${videoSection}
       <div class="grid-2-eq" style="margin-bottom:18px">
         <div class="card">
           <div class="card__hd"><h3>제목 아이디어 5선</h3><span class="muted">클릭률 관점 추정</span></div>
@@ -3121,14 +3296,18 @@ function renderIdeas(){
         <div class="card__hd"><h3>추천 태그 20개</h3><span class="muted">클릭으로 복사</span></div>
         <div>${data.tags.map((t,i)=>`<span class="idea-tag" onclick="navigator.clipboard&&navigator.clipboard.writeText('${escAttr(t)}').then(()=>toast('태그 복사됨'))">#${esc(t)}</span>`).join('')}</div>
       </div>
-      ${aiData ? `
-      <div class="ai-section">
-        <div class="ai-section__hd">
-          <span class="ai-badge">✦ AI</span>
-          <span class="ai-section__t">AI 콘텐츠 전략</span>
-          <span class="ai-section__sub">OpenAI GPT-4o mini · 가능성 기반</span>
-        </div>
+      ${aiSectionSkeleton('ideaAi')}
+    `;
+
+    // AI analysis based on real videos (or fallback)
+    const aiPromise = hasReal
+      ? API.aiContentIdeasFromVideos(kw, realVideos)
+      : API.aiContentIdeas(kw);
+    aiPromise.then(aiData => {
+      if (!aiData) { const s=document.getElementById('ideaAi'); if(s) s.style.display='none'; return; }
+      aiSectionShow('ideaAi', 'AI 콘텐츠 전략' + (hasReal?' (실제 영상 분석 기반)':''), `
         <div class="ai-summary">${esc(aiData.hook||'')}</div>
+        ${aiData.pattern?`<div class="ai-opp" style="margin-bottom:12px">📊 ${esc(aiData.pattern)}</div>`:''}
         <div class="ai-cols">
           <div>
             <div class="ai-col__t">신선한 콘텐츠 각도</div>
@@ -3140,8 +3319,8 @@ function renderIdeas(){
             ${aiData.cta?`<div class="ai-col__t" style="margin-top:14px">CTA 문구 예시</div><div class="ai-idea-card"><div class="ai-idea-card__d">"${esc(aiData.cta)}"</div></div>`:''}
           </div>
         </div>
-      </div>` : ''}
-    `;
+      `);
+    });
   });
 }
 
@@ -3154,11 +3333,33 @@ const MonitorStore = {
   remove(kw){ this.save(this.load().filter(k=>k!==kw)); },
 };
 
+function _monitorSparkline(points, color, uid){
+  if (!points || points.length < 2) return '';
+  const W=180, H=48, pad=4;
+  const vals = points.map(p=>p.v);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const xs = points.map((_,i)=> pad + (W-pad*2)*i/(points.length-1));
+  const ys = points.map(p=> H-pad - (H-pad*2)*(p.v-minV)/range);
+  const line = xs.map((x,i)=>(i===0?'M':'L')+x.toFixed(1)+' '+ys[i].toFixed(1)).join(' ');
+  const area = line + ` L${xs[xs.length-1].toFixed(1)} ${H} L${xs[0].toFixed(1)} ${H} Z`;
+  const gid = 'mspg'+uid;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;height:${H}px;flex:none">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity=".02"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})" />
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${xs[xs.length-1].toFixed(1)}" cy="${ys[ys.length-1].toFixed(1)}" r="3" fill="${color}"/>
+  </svg>`;
+}
+
 async function renderMonitor(){
   const keywords = MonitorStore.load();
   main.innerHTML = `
     <div class="page-head">
-      <div><h1>트렌드 모니터링</h1><p>관심 키워드를 등록하면 트렌드 변화를 추적합니다. 최대 10개.</p></div>
+      <div><h1>트렌드 모니터링</h1><p>관심 키워드를 등록하면 12주 추세 그래프와 AI 트렌드 보고서를 제공합니다. 최대 10개.</p></div>
     </div>
     <div class="card" style="margin-bottom:22px">
       <div class="card__hd"><h3>키워드 등록</h3><span class="muted">${keywords.length}/10</span></div>
@@ -3169,8 +3370,9 @@ async function renderMonitor(){
     </div>
     <div id="monitorList">
       ${keywords.length===0 ? `<div class="empty"><h4>등록된 키워드가 없습니다</h4><p>위에서 키워드를 추가하세요.</p></div>` :
-        `<div class="card"><div class="card__hd"><h3>모니터링 현황</h3><span class="muted">실시간 가능성 점수 · 매 방문 시 갱신</span></div>
-         <div class="monitor-kw-list" id="monitorRows"><div class="skeleton" style="height:200px;border-radius:10px"></div></div></div>`}
+        `<div class="card" style="margin-bottom:18px"><div class="card__hd"><h3>모니터링 현황</h3><span class="muted">12주 추세 · 가능성 점수</span></div>
+         <div class="monitor-kw-list" id="monitorRows"><div class="skeleton" style="height:200px;border-radius:10px"></div></div></div>
+         <div id="monitorReports"></div>`}
     </div>
   `;
   document.getElementById('monitorForm').addEventListener('submit', e => {
@@ -3182,7 +3384,10 @@ async function renderMonitor(){
     renderMonitor();
   });
   if (keywords.length > 0){
-    const scores = await Promise.all(keywords.map(kw => API.monitorScore(kw)));
+    const [scores, histories] = await Promise.all([
+      Promise.all(keywords.map(kw => API.monitorScore(kw))),
+      Promise.all(keywords.map(kw => API.monitorHistory(kw)))
+    ]);
     const rows = document.getElementById('monitorRows');
     if (!rows) return;
     const alerts = scores.filter(s=>s.alert);
@@ -3192,16 +3397,18 @@ async function renderMonitor(){
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0.13 155)" stroke-width="2.2" stroke-linecap="round"><path d="M12 22c1.1 0 2-.9 2-2H10a2 2 0 0 0 2 2z"/><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
           <div><b>"${esc(s.keyword)}"</b> 가능성 점수 ${s.score}점 — 트렌드 급상승 신호 감지 (가능성 기반)</div>
         </div>`).join('')}</div>` : ''}
-      ${scores.map(s=>{
+      ${scores.map((s,idx)=>{
         const color = s.score>=75?'oklch(0.52 0.14 155)':s.score>=50?'oklch(0.55 0.15 255)':'oklch(0.7 0.08 260)';
         const arrow = s.delta>5?'↑':s.delta<-5?'↓':'→';
         const arrowColor = s.delta>5?'var(--ok)':s.delta<-5?'var(--danger)':'var(--ink-4)';
-        return `<div class="monitor-kw-row">
+        const sparkline = _monitorSparkline(histories[idx]||[], color, Gen.hash('sp:'+s.keyword).toString(36));
+        return `<div class="monitor-kw-row" style="flex-wrap:wrap;gap:8px 12px">
           <div class="monitor-kw-name">${esc(s.keyword)}</div>
           <div style="font-size:20px;font-weight:750;width:36px;text-align:right;color:${color}">${s.score}</div>
-          <div class="monitor-score-bar"><div class="monitor-score-fill" style="width:${s.score}%;background:${color}"></div></div>
+          <div class="monitor-score-bar" style="flex:1;min-width:80px"><div class="monitor-score-fill" style="width:${s.score}%;background:${color}"></div></div>
           <div style="font-size:13px;font-weight:700;color:${arrowColor};width:24px;text-align:center">${arrow}</div>
-          <div style="font-size:11px;color:var(--ink-4);width:60px">${s.delta>0?'+':''}${s.delta}점 변화</div>
+          <div style="font-size:11px;color:var(--ink-4);width:56px">${s.delta>0?'+':''}${s.delta}점</div>
+          ${sparkline}
           <button class="monitor-kw-del" data-del="${escAttr(s.keyword)}">✕</button>
         </div>`;
       }).join('')}
@@ -3211,6 +3418,35 @@ async function renderMonitor(){
       toast(`"${btn.dataset.del}" 삭제됨`);
       renderMonitor();
     }));
+
+    // AI trend reports (one per keyword, async)
+    const reportsEl = document.getElementById('monitorReports');
+    if (reportsEl){
+      reportsEl.innerHTML = keywords.map(kw=>`
+        <div class="card" style="margin-bottom:14px" id="mrpt_${escAttr(Gen.hash('mrpt:'+kw).toString(36))}">
+          <div class="card__hd"><h3>"${esc(kw)}" 트렌드 보고서</h3><span class="muted chip" style="font-size:10px">AI 분석</span></div>
+          <div class="skeleton" style="height:80px;border-radius:8px"></div>
+        </div>`).join('');
+      keywords.forEach(async (kw) => {
+        const id = 'mrpt_'+Gen.hash('mrpt:'+kw).toString(36);
+        const report = await API.monitorReport(kw);
+        const el2 = document.getElementById(id);
+        if (!el2) return;
+        if (!report){ el2.style.display='none'; return; }
+        const statusColor = report.status==='급상승'?'oklch(0.52 0.14 155)':report.status==='상승세'?'oklch(0.55 0.15 255)':report.status==='하락'?'oklch(0.6 0.18 25)':'var(--ink-4)';
+        el2.querySelector('.skeleton').outerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span class="chip" style="background:${statusColor};color:#fff;font-size:11px;font-weight:700">${esc(report.status||'—')}</span>
+          </div>
+          <div style="font-size:13.5px;color:var(--ink-2);line-height:1.6;margin-bottom:10px">${esc(report.summary||'')}</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+            ${(report.reasons||[]).map(r=>`<div style="font-size:12.5px;color:var(--ink-3)">→ ${esc(r)}</div>`).join('')}
+          </div>
+          <div style="font-size:12.5px;background:var(--accent-soft);color:var(--accent-ink);padding:10px 12px;border-radius:8px;line-height:1.5">
+            💡 ${esc(report.recommendation||'')}
+          </div>`;
+      });
+    }
   }
 }
 
@@ -3363,7 +3599,7 @@ function renderRevenue(){
         </div>
       </div>
       ${aiData ? `
-      <div class="ai-section">
+      <div class="ai-section" style="margin-bottom:18px">
         <div class="ai-section__hd">
           <span class="ai-badge">✦ AI</span>
           <span class="ai-section__t">AI 수익화 전략</span>
@@ -3384,7 +3620,34 @@ function renderRevenue(){
           </div>
         </div>
       </div>` : ''}
+      <div class="card" id="revTopChannels">
+        <div class="card__hd"><h3>${esc(cat)} 카테고리 수익 상위 채널 TOP 10</h3><span class="muted">조회수 기준 · 가능성 추정</span></div>
+        <div class="skeleton" style="height:320px;border-radius:10px"></div>
+      </div>
     `;
+    // Load top channels async
+    API.topRevenueChannels(cat).then(channels => {
+      const card = document.getElementById('revTopChannels');
+      if (!card) return;
+      card.querySelector('.skeleton').outerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${channels.map((ch,i)=>{
+            const v = ch.topVideo;
+            const _key = v.id||('v_'+Gen.hash(v.title+':'+v.channel).toString(36));
+            VidRegistry[_key] = v;
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-sunken);border-radius:10px;cursor:pointer" data-vplay="${escAttr(_key)}">
+              <div style="font-size:18px;font-weight:750;width:28px;text-align:center;color:var(--ink-4)">${i+1}</div>
+              <div style="width:80px;flex:none">${thumb(v,{cat:false})}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:650;font-size:13px;color:var(--ink);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.channel)}</div>
+                <div style="font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escAttr(v.title)}">${esc(v.title.slice(0,50))}${v.title.length>50?'…':''}</div>
+                <div style="font-size:11px;color:var(--ink-4);margin-top:2px">조회수 ${Gen.viewStr(v.views)}</div>
+              </div>
+              <div style="font-size:12px;color:var(--ok);font-weight:700;flex:none">${(ch.totalViews/1000000).toFixed(1)}M</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    });
   });
 }
 
