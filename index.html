@@ -389,17 +389,44 @@
     .scores{grid-template-columns: 1fr 1fr}
     .res-head__kw{font-size:24px}
   }
+  /* Vid action bar */
+  .vid-actions{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px 12px;border-top:1px solid var(--line);background:var(--bg-sunken)}
+  .vab{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 9px;border-radius:6px;font-size:11px;font-weight:600;background:#fff;color:var(--ink-2);border:1px solid var(--line);cursor:pointer;white-space:nowrap;transition:background .1s,color .1s,border-color .1s}
+  .vab:hover{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
+  .vab--copy:hover{background:var(--ok-soft);color:oklch(0.4 0.13 155);border-color:transparent}
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,18,30,.52);z-index:150;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .18s}
+  .modal-bg.is-open{opacity:1;pointer-events:auto}
+  .modal-box{background:#fff;border-radius:var(--r-xl);box-shadow:0 24px 80px rgba(15,18,30,.22);width:100%;max-width:720px;max-height:88vh;overflow:auto;transform:translateY(10px);transition:transform .18s;display:flex;flex-direction:column}
+  .modal-bg.is-open .modal-box{transform:translateY(0)}
+  .modal-hd{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:1}
+  .modal-hd__t{font-size:15px;font-weight:700;flex:1;letter-spacing:-0.01em}
+  .modal-hd__s{font-size:12px;color:var(--ink-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .modal-hd__x{width:30px;height:30px;border-radius:8px;background:var(--bg-sunken);display:flex;align-items:center;justify-content:center;color:var(--ink-3);flex:none;cursor:pointer;border:0}
+  .modal-hd__x:hover{background:var(--line-strong)}
+  .modal-bd{padding:20px 22px 24px}
+  /* Topic grid */
+  .topic-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .topic-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+  .topic-card:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm)}
+  .topic-card__hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .topic-card__rank{width:22px;height:22px;border-radius:6px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .topic-card__t{font-weight:650;font-size:13.5px;letter-spacing:-0.01em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topic-card__desc{font-size:12px;color:var(--ink-3);line-height:1.55;margin-bottom:8px}
+  .topic-card__bar{height:4px;background:var(--bg-sunken);border-radius:99px;overflow:hidden}
+  .topic-card__bar span{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .topic-card__foot{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:11px;color:var(--ink-3)}
 </style>
 </head>
 <body>
 
 <div class="app">
   <aside class="sb" id="sb">
-    <div class="sb__brand">
+    <div class="sb__brand" style="cursor:pointer" id="brandBtn">
       <div class="sb__mark" aria-hidden="true"></div>
       <div>
-        <div class="sb__title">SignalMap AI</div>
-        <div class="sb__sub">유튜브 트렌드 시그널</div>
+        <div class="sb__title">YouTube Trend Report</div>
+        <div class="sb__sub">유튜브 트렌드 분석</div>
       </div>
     </div>
     <nav class="sb__nav" id="nav">
@@ -488,6 +515,21 @@
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast"></div>
+
+<div class="modal-bg" id="vidModal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div style="flex:1;min-width:0">
+        <div class="modal-hd__t" id="modalTitle"></div>
+        <div class="modal-hd__s" id="modalSub"></div>
+      </div>
+      <button class="modal-hd__x" id="modalClose" aria-label="닫기">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-bd" id="modalBody"></div>
+  </div>
+</div>
 
 <script>
 /* =============================================================
@@ -1041,6 +1083,7 @@ function videoCard(v, opts={}){
         <span>CTR <b>${v.ctr}%</b></span>
         <span class="vid-card__score">${v.score}</span>
       </div>
+      ${vidActionBar(v)}
     </div>
   `;
 }
@@ -1063,6 +1106,7 @@ function videoRow(v){
         <div><div class="met__l">예상 CTR</div><div class="met__v">${v.ctr}%</div><div class="met__s">시그널 추정</div></div>
         <div><div class="met__l">유지율</div><div class="met__v">${v.retention}%</div><div class="met__s">평균 ${Math.floor(v.avd/60)}:${String(v.avd%60).padStart(2,'0')}</div></div>
       </div>
+      ${vidActionBar(v, true)}
     </div>
   `;
 }
@@ -1347,17 +1391,73 @@ function renderLoading(keyword){
 async function renderAnalysis(){
   const a = App.current;
   if (!a){
+    const topics = genTrendingTopics(App.region);
     main.innerHTML = `
-      <div class="page-head"><div><h1>주제/키워드 분석</h1><p>먼저 분석할 주제나 키워드를 입력해주세요.</p></div></div>
-      <div class="card">
-        <div class="card__hd"><h3>키워드 입력</h3></div>
+      <div class="page-head"><div><h1>주제/키워드 분석</h1><p>분석할 주제·키워드를 직접 입력하거나, 아래 급상승 주제 중 하나를 클릭하세요.</p></div></div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card__hd"><h3>키워드 직접 입력</h3></div>
         <form class="hero__form" id="emptyForm" style="margin-top:0">
-          <input id="emptyInput" placeholder="예) 자취 인테리어, 미니멀 캠핑"/>
-          <button>분석 시작</button>
+          <input id="emptyInput" placeholder="예) 자취 인테리어, 미니멀 캠핑, AI 사이드잡"/>
+          <button type="submit">분석 시작</button>
         </form>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div class="card__hd">
+          <h3>지금 유튜브에서 주목받는 주제 TOP 10</h3>
+          <span class="muted">카드를 클릭하면 바로 분석이 시작됩니다 · 가능성 기반 추정</span>
+        </div>
+        <p style="margin:0 0 14px;font-size:12.5px;color:var(--ink-3);line-height:1.6">아래 주제들은 현재 유튜브에서 검색·언급량이 빠르게 증가하고 있는 키워드입니다. 각 카드를 클릭하면 성장 가능성·사업화 가능성·콘텐츠 활용성·리스크에 대한 상세 분석과 1~6개월 예측 보고서가 생성됩니다.</p>
+        <div class="topic-grid">
+          ${topics.map(t=>`
+            <div class="topic-card" data-kw="${escAttr(t.keyword)}">
+              <div class="topic-card__hd">
+                <div class="topic-card__rank">${t.rank}</div>
+                <div class="topic-card__t">${esc(t.keyword)}</div>
+                <span class="chip ${t.growth>50?'chip--ok':'chip--accent'}" style="font-size:10px;padding:2px 7px">${t.growth>50?'급상승':'상승'} +${t.growth}%</span>
+              </div>
+              <div class="topic-card__desc">${esc(t.desc)}</div>
+              <div class="topic-card__bar"><span style="width:${t.score}%"></span></div>
+              <div class="topic-card__foot">
+                <span class="chip" style="font-size:10px;padding:2px 7px">${esc(t.category.name)}</span>
+                <span style="margin-left:auto">가능성 <b style="color:var(--ink)">${t.score}</b>/100</span>
+                <span>·</span>
+                <span>${esc(t.prediction)}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__hd"><h3>급상승 주제 예측 보고서 요약</h3><span class="muted">가능성 기반 비확정 추정 · 클릭하면 상세 분석</span></div>
+        <p style="margin:0 0 14px;font-size:12.5px;color:var(--ink-3)">상위 5개 주제의 종합 가능성 점수와 1개월 후 예측값을 한눈에 비교합니다.</p>
+        <div class="vid-list">
+          ${topics.slice(0,5).map(t=>`
+            <div style="padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:#fff;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;cursor:pointer" data-kw="${escAttr(t.keyword)}">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                  <span class="chip chip--accent" style="font-size:10px;padding:2px 7px">${t.rank}위</span>
+                  <span style="font-weight:650;font-size:14px">${esc(t.keyword)}</span>
+                  <span class="chip" style="font-size:10px;padding:2px 7px">${esc(t.category.name)}</span>
+                </div>
+                <div style="font-size:12.5px;color:var(--ink-3);line-height:1.5">${esc(t.desc)}</div>
+                <div style="margin-top:6px;display:flex;gap:12px;font-size:11.5px;color:var(--ink-3)">
+                  <span>성장 <b style="color:var(--ok)">+${t.growth}%</b></span>
+                  <span>1개월 예측 <b style="color:var(--ink)">${esc(t.prediction)}</b></span>
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">${t.score}</div>
+                <div style="font-size:11px;color:var(--ink-3)">가능성 점수</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
     document.getElementById('emptyForm').addEventListener('submit', e=>{ e.preventDefault(); App.analyzeAndShow(document.getElementById('emptyInput').value); });
+    main.querySelectorAll('[data-kw]').forEach(el => el.addEventListener('click', () => App.analyzeAndShow(el.dataset.kw)));
     return;
   }
 
@@ -1561,6 +1661,15 @@ async function renderSuccess(){
   main.innerHTML = `
     <div class="page-head"><div><h1>성공 패턴 분석</h1><p>${regionName} 상위 영상의 공통 신호를 가능성 기반으로 정리했습니다.</p></div></div>
 
+    <div class="card" style="margin-bottom:18px">
+      <div class="card__hd"><h3>유튜브 URL로 성공 요인 분석</h3><span class="muted">특정 영상의 성공 패턴을 직접 분석합니다</span></div>
+      <form id="successUrlForm" style="display:flex;gap:8px;max-width:700px">
+        <input id="successUrlInput" class="field__input" style="flex:1;height:44px;font-size:13.5px;font-family:var(--font)" placeholder="https://www.youtube.com/watch?v=... 또는 youtu.be/..." autocomplete="off"/>
+        <button type="submit" class="btn btn--primary" style="height:44px;padding:0 20px;white-space:nowrap">분석 시작</button>
+      </form>
+      <div id="successUrlResult"></div>
+    </div>
+
     <div class="grid-2-eq">
       <div class="card">
         <div class="card__hd"><h3>제목 글자 수 분포</h3><span class="muted">바깥 영역일수록 비중 낮음</span></div>
@@ -1623,6 +1732,14 @@ async function renderSuccess(){
       </div>
     </div>
   `;
+  document.getElementById('successUrlForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const url = document.getElementById('successUrlInput').value.trim();
+    if (!url) return;
+    const el = document.getElementById('successUrlResult');
+    el.innerHTML = '<div class="skeleton" style="height:280px;margin-top:14px;border-radius:12px;border:1px solid var(--line)"></div>';
+    setTimeout(()=>{ el.innerHTML = renderUrlSuccessReport(genUrlSuccessReport(url), url); }, 700);
+  });
 }
 
 /* ── ALGORITHM ── */
@@ -1631,6 +1748,15 @@ async function renderAlgorithm(){
   const totalW = data.factors.reduce((s,f)=>s+f.w, 0);
   main.innerHTML = `
     <div class="page-head"><div><h1>알고리즘 인사이트</h1><p>플랫폼이 영상을 추천할 때 영향을 줄 가능성이 있는 신호를 가중치 기반으로 정리합니다. 확정된 공식이 아니라 공개 자료·관측 기반 추정입니다.</p></div></div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card__hd"><h3>유튜브 URL로 알고리즘 분석</h3><span class="muted">특정 영상의 알고리즘 신호를 직접 분석합니다</span></div>
+      <form id="algoUrlForm" style="display:flex;gap:8px;max-width:700px">
+        <input id="algoUrlInput" class="field__input" style="flex:1;height:44px;font-size:13.5px;font-family:var(--font)" placeholder="https://www.youtube.com/watch?v=... 또는 youtu.be/..." autocomplete="off"/>
+        <button type="submit" class="btn btn--primary" style="height:44px;padding:0 20px;white-space:nowrap">분석 시작</button>
+      </form>
+      <div id="algoUrlResult"></div>
+    </div>
 
     <div class="grid-2">
       <div class="card">
@@ -1660,6 +1786,14 @@ async function renderAlgorithm(){
       </div>
     </div>
   `;
+  document.getElementById('algoUrlForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const url = document.getElementById('algoUrlInput').value.trim();
+    if (!url) return;
+    const el = document.getElementById('algoUrlResult');
+    el.innerHTML = '<div class="skeleton" style="height:280px;margin-top:14px;border-radius:12px;border:1px solid var(--line)"></div>';
+    setTimeout(()=>{ el.innerHTML = renderUrlAlgoReport(genUrlAlgoReport(url), url); }, 700);
+  });
 }
 function treemap(factors){
   const total = factors.reduce((s,f)=>s+f.w,0);
@@ -1883,6 +2017,285 @@ function renderSettings(){
   });
 }
 
+/* ─────────────── Video Action Bar ─────────────── */
+const VidRegistry = {};
+function mockYtVidId(id){ return Gen.hash('ytv:'+id).toString(16).padStart(11,'0').slice(0,11); }
+
+function vidActionBar(v, rowMode=false){
+  const key = v.id || ('v_'+Gen.hash(v.title+':'+v.channel).toString(36));
+  VidRegistry[key] = v;
+  const ytVid = mockYtVidId(key);
+  const chSlug = v.channel.replace(/\s+/g,'');
+  const vidUrl = 'https://www.youtube.com/watch?v=' + ytVid;
+  const chUrl  = 'https://www.youtube.com/@' + chSlug;
+  const span   = rowMode ? ' style="grid-column:1/-1"' : '';
+  return `<div class="vid-actions"${span} onclick="event.stopPropagation()">
+    <button class="vab" data-va="summary" data-key="${escAttr(key)}">동영상 요약</button>
+    <button class="vab" data-va="script"  data-key="${escAttr(key)}">스크립트 요약</button>
+    <button class="vab" data-va="algo"    data-key="${escAttr(key)}">알고리즘 분석</button>
+    <button class="vab" data-va="success" data-key="${escAttr(key)}">성공요인 분석</button>
+    <button class="vab vab--copy" data-va="copyVid" data-url="${escAttr(vidUrl)}">영상 URL 복사</button>
+    <button class="vab vab--copy" data-va="copyCh"  data-url="${escAttr(chUrl)}">채널 URL 복사</button>
+  </div>`;
+}
+
+/* ─────────────── Modal ─────────────── */
+const VidModal = {
+  init(){
+    document.getElementById('modalClose').addEventListener('click', ()=>this.close());
+    document.getElementById('vidModal').addEventListener('click', e=>{ if(e.target===document.getElementById('vidModal')) this.close(); });
+  },
+  open(title, sub, html){
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalSub').textContent = sub||'';
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('vidModal').classList.add('is-open');
+    document.body.style.overflow='hidden';
+  },
+  close(){
+    document.getElementById('vidModal').classList.remove('is-open');
+    document.body.style.overflow='';
+  }
+};
+
+function openVidModal(type, v){
+  const r = Gen.rng(Gen.hash('modal:'+type+':'+v.id));
+  const titles = { summary:'동영상 요약', script:'스크립트 요약', algo:'알고리즘 분석', success:'성공요인 분석' };
+  VidModal.open(titles[type]||type, v.title, genModalContent(type, v, r));
+}
+
+function genModalContent(type, v, r){
+  if (type==='summary')  return genVideoSummary(v, r);
+  if (type==='script')   return genScriptSummary(v, r);
+  if (type==='algo')     return genAlgoDetails(v, r);
+  if (type==='success')  return genSuccessFactors(v, r);
+  return '';
+}
+
+function genVideoSummary(v, r){
+  const dur = Gen.durStr(v.durationSec);
+  const tags = ['정보 전달형','엔터테인먼트','실용적','감성적','도전형','리뷰형','브이로그형','튜토리얼형'];
+  const picked = tags.sort(()=>r()-0.5).slice(0,3);
+  return `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>영상 개요</h3></div>
+      <div style="font-size:13.5px;line-height:1.65;display:flex;flex-direction:column;gap:8px">
+        <p style="margin:0"><b>${esc(v.channel)}</b> 채널의 <b>${esc(v.category.name)}</b> 분야 콘텐츠입니다.</p>
+        <p style="margin:0">총 ${dur} 길이로 업로드 ${v.publishedAgoH}시간 만에 <b>${Gen.viewStr(v.views)}</b>회 조회를 기록하고 있습니다.</p>
+        <p style="margin:0">최근 24시간 동안 <b style="color:var(--ok)">+${Gen.viewStr(v.delta24h)}</b>회 증가한 것으로 추정되며, 알고리즘 노출 신호로 해석될 가능성이 있습니다.</p>
+      </div>
+    </div>
+    <div class="scores" style="grid-template-columns:repeat(3,1fr)">
+      <div class="score"><div class="score__hd">조회수</div><div class="score__num" style="font-size:20px">${Gen.viewStr(v.views)}</div><div class="score__note">전체 누적 추정</div></div>
+      <div class="score"><div class="score__hd">24h 증가</div><div class="score__num" style="font-size:20px;color:var(--ok)">+${Gen.viewStr(v.delta24h)}</div><div class="score__note">급상승 신호</div></div>
+      <div class="score"><div class="score__hd">가능성 점수</div><div class="score__num" style="font-size:20px">${v.score}</div><div class="score__note">/ 100</div></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>콘텐츠 특성 추정</h3></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${picked.map(t=>`<span class="chip chip--accent">${t}</span>`).join('')}</div>
+      <p style="margin:0;font-size:12px;color:var(--ink-3)">제목·카테고리·길이 기반 AI 추정값입니다. 실제 영상 내용과 다를 수 있습니다.</p>
+    </div>
+  </div>`;
+}
+
+function genScriptSummary(v, r){
+  const m = Math.floor(v.durationSec/60);
+  const sections = [
+    { t:`오프닝 (0:00 ~ 0:30)`, d:`"${esc(v.title)}"의 핵심 주제를 제시하며 시청자 이탈을 막는 후킹으로 시작하는 것으로 추정됩니다. 첫 30초의 이탈률이 낮을 가능성이 있습니다.` },
+    { t:`도입부 (0:30 ~ ${Math.round(m*0.2)}:00)`, d:`주제의 배경과 맥락을 설명하는 구간입니다. 정보 밀도가 높고 자막·그래픽이 함께 활용될 가능성이 있습니다.` },
+    { t:`본론 (${Math.round(m*0.2)}:00 ~ ${Math.round(m*0.7)}:00)`, d:`핵심 내용을 단계별로 풀어가며 시청자의 궁금증을 해소하는 구간입니다. 중간 이탈을 막기 위한 장치가 포함되어 있을 가능성이 있습니다.` },
+    { t:`클라이맥스 (${Math.round(m*0.7)}:00 ~ ${Math.round(m*0.9)}:00)`, d:`영상의 핵심 장면·정보가 집중되는 구간으로 추정됩니다. 시청 유지율이 이 구간에서 상승할 가능성이 큽니다.` },
+    { t:`마무리 & CTA (${Math.round(m*0.9)}:00 ~ ${m}:00)`, d:`핵심을 요약하고 구독·좋아요·다음 영상으로 이어지도록 유도하는 아웃트로 구간입니다.` },
+  ];
+  return `<div style="display:flex;flex-direction:column;gap:10px">
+    <div style="padding:12px;background:var(--warn-soft);border-radius:var(--r-md);font-size:12px;color:oklch(0.42 0.13 75)">이 스크립트 요약은 제목·길이·카테고리를 기반으로 AI가 추정한 가상 구성입니다. 실제 스크립트와 다를 수 있습니다.</div>
+    ${sections.map((s,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${s.t}</div><div class="insight__d">${s.d}</div></div></div>`).join('')}
+    <div class="card" style="padding:14px">
+      <div style="font-size:12.5px;color:var(--ink-3)"><b style="color:var(--ink)">핵심 키워드 추정:</b> <span style="margin-left:6px">${v.title.split(/\s+/).slice(0,5).map(w=>`<span class="chip" style="margin:0 2px 4px">${esc(w)}</span>`).join('')}</span></div>
+    </div>
+  </div>`;
+}
+
+function genAlgoDetails(v, r){
+  const velScore = Math.min(100, Math.round((v.delta24h/Math.max(v.views,1))*200));
+  const ctrGrade = v.ctr>=8?'우수':v.ctr>=5?'보통':'개선 필요';
+  const retGrade = v.retention>=55?'우수':v.retention>=40?'보통':'개선 필요';
+  const ctrColor = v.ctr>=8?'var(--ok)':v.ctr>=5?'var(--warn)':'var(--danger)';
+  const retColor = v.retention>=55?'var(--ok)':v.retention>=40?'var(--warn)':'var(--danger)';
+  return `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="scores" style="grid-template-columns:repeat(2,1fr)">
+      <div class="score"><div class="score__hd">CTR 추정</div><div class="score__num">${v.ctr}%<span style="font-size:11px;color:var(--ink-4)"> (${ctrGrade})</span></div><div class="score__bar"><span style="width:${Math.min(100,v.ctr*8)}%;background:${ctrColor}"></span></div><div class="score__note">노출 대비 클릭률 추정</div></div>
+      <div class="score"><div class="score__hd">시청 유지율</div><div class="score__num">${v.retention}%<span style="font-size:11px;color:var(--ink-4)"> (${retGrade})</span></div><div class="score__bar"><span style="width:${v.retention}%;background:${retColor}"></span></div><div class="score__note">평균 시청 비율 추정</div></div>
+      <div class="score"><div class="score__hd">속도 지수</div><div class="score__num">${velScore}<span style="font-size:11px;color:var(--ink-4)"> / 100</span></div><div class="score__bar"><span style="width:${velScore}%;background:var(--accent)"></span></div><div class="score__note">24h 상승 속도 추정</div></div>
+      <div class="score"><div class="score__hd">종합 가능성</div><div class="score__num">${v.score}<span style="font-size:11px;color:var(--ink-4)"> / 100</span></div><div class="score__bar"><span style="width:${v.score}%;background:var(--accent)"></span></div><div class="score__note">알고리즘 신호 종합</div></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>알고리즘 신호 해석</h3></div>
+      <div class="insight-list">
+        ${[
+          {t:'초반 노출 신호', d:`발행 후 ${v.publishedAgoH}시간 만에 ${Gen.viewStr(v.views)} 조회로 ${v.publishedAgoH<6?'빠른 초반 노출 신호가 감지됩니다':'안정적인 성장세가 관측됩니다'}.`},
+          {t:'CTR 품질', d:`${v.ctr}% CTR은 ${ctrGrade} 수준으로, 썸네일과 제목의 조합이 클릭 유도에 ${v.ctr>=7?'효과적으로 보입니다':'개선 여지가 있을 수 있습니다'}.`},
+          {t:'유지율 영향', d:`${v.retention}% 유지율은 알고리즘의 콘텐츠 품질 평가에 ${v.retention>=50?'긍정적으로 작용할 가능성이 큽니다':'영향을 줄 수 있으며 인트로 최적화가 필요합니다'}.`},
+        ].map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${it.t}</div><div class="insight__d">${it.d}</div></div></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function genSuccessFactors(v, r){
+  const factors = [
+    {t:'제목 효과성', score:55+Math.round(r()*40), d:`제목 길이(${v.title.length}자)와 키워드 배치가 검색·클릭 유도에 영향을 줄 가능성이 있습니다.`},
+    {t:'업로드 타이밍', score:50+Math.round(r()*45), d:`${v.publishedAgoH}시간 전 업로드로 초반 4시간 골든타임을 활용했을 가능성이 있습니다.`},
+    {t:'콘텐츠 길이 최적화', score:45+Math.round(r()*50), d:`${Gen.durStr(v.durationSec)} 길이는 ${v.durationSec<300?'쇼츠 포맷으로 빠른 소비에 유리':v.durationSec<900?'미들폼으로 알고리즘 선호 구간':v.durationSec<1500?'롱폼으로 시청 시간 확보에 유리':'장편으로 충성 시청자 타깃'}합니다.`},
+    {t:'카테고리 경쟁도', score:40+Math.round(r()*55), d:`${v.category.name} 분야 경쟁 강도와 채널 권위가 노출에 복합 작용할 가능성이 있습니다.`},
+    {t:'시청자 반응 신호', score:50+Math.round(r()*45), d:`좋아요 ${Gen.viewStr(v.likes)}개로 추정되는 반응 신호는 알고리즘 콘텐츠 평가에 영향을 줄 가능성이 있습니다.`},
+  ];
+  return `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>성공 요인 점수표</h3><span class="muted">가능성 기반 추정</span></div>
+      ${factors.map(f=>`<div class="factor">
+        <div class="factor__hd"><div class="factor__t">${esc(f.t)}</div></div>
+        <div class="factor__val">${f.score}<span style="font-size:11px;color:var(--ink-4);font-weight:600"> / 100</span></div>
+        <div class="factor__bar"><i style="width:${f.score}%"></i></div>
+        <div class="factor__d">${esc(f.d)}</div>
+      </div>`).join('')}
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>종합 평가</h3></div>
+      <p style="margin:0;font-size:13.5px;line-height:1.65;color:var(--ink-2)">'<b>${esc(v.title)}</b>'은(는) ${v.score>=70?'다수의 성공 신호가 복합 작용한 것으로 추정됩니다':v.score>=50?'몇 가지 긍정적 신호가 관측되나 개선 여지도 있습니다':'성공 가능성 신호가 아직 약한 단계로 관측됩니다'}. CTR ${v.ctr}%·유지율 ${v.retention}% 조합이 핵심 지표로 작용했을 가능성이 있습니다. 이 분석은 가상 데이터 기반 추정이며 실제 채널 데이터와 다를 수 있습니다.</p>
+    </div>
+  </div>`;
+}
+
+/* ─────────────── Trending Topics ─────────────── */
+function genTrendingTopics(region){
+  const r = Gen.rng(Gen.hash('tk:'+region+':'+new Date().toDateString()));
+  const pool = [
+    '미니멀 캠핑','하루 한 끼 단백질','자취 인테리어','월배당 포트폴리오','로컬 디저트',
+    'AI 사이드잡','1인 콘텐츠 창작','소형 주택 생활','디지털 노마드','홈 카페 루틴',
+    '저예산 해외여행','무자본 창업','퇴사 후 삶','맨몸 운동 루틴','미래 직업 트렌드',
+    '레트로 브이로그','독서 챌린지','제로웨이스트','재테크 입문','언어 교환 루틴',
+  ];
+  return pool.sort(()=>r()-0.5).slice(0,10).map((kw,i)=>{
+    const rk = Gen.rng(Gen.hash('tkd:'+kw));
+    const score   = Math.round(58 + rk()*38);
+    const growth  = Math.round(18 + rk()*77);
+    const cat     = Gen.CATEGORIES[Math.floor(rk()*Gen.CATEGORIES.length)];
+    const persons = ['20대 직장인','30대 자영업자','대학생','주부','프리랜서'];
+    const person  = persons[Math.floor(rk()*persons.length)];
+    return {
+      rank: i+1, keyword: kw, score, growth, category: cat,
+      desc: `'${kw}'은(는) ${cat.name} 영역에서 최근 ${growth}% 상승 신호가 감지되고 있습니다. 특히 ${person} 시청자층에서 강한 관심을 보이는 경향이 있습니다.`,
+      prediction: `1M후 ${Math.min(98,Math.round(score + rk()*12 - 4))}점 추정`,
+    };
+  });
+}
+
+/* ─────────────── URL Analysis ─────────────── */
+function parseYtId(url){
+  try {
+    const u = new URL(url.startsWith('http')?url:'https://'+url);
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+    return u.searchParams.get('v') || null;
+  } catch { return null; }
+}
+
+function genUrlSuccessReport(url){
+  const ytId = parseYtId(url);
+  const seed = ytId || url;
+  const r = Gen.rng(Gen.hash('url_s:'+seed));
+  const views      = Math.round(50000 + r()*8000000);
+  const ctr        = +(2+r()*11).toFixed(1);
+  const retention  = +(25+r()*55).toFixed(1);
+  const dur        = Math.round(120+r()*1800);
+  const likes      = Math.round(views*(0.02+r()*0.05));
+  const score      = Math.min(99, Math.round(ctr*4 + retention*0.7 + Math.log10(views)*3));
+  const cat        = Gen.CATEGORIES[Math.floor(r()*Gen.CATEGORIES.length)];
+  const factors = [
+    {t:'제목 효과성',       score:50+Math.round(r()*45), d:'제목의 키워드 구성과 감성 어휘가 클릭 유도에 영향을 줄 가능성이 있습니다.'},
+    {t:'썸네일 품질',       score:45+Math.round(r()*50), d:'썸네일 내 텍스트 가독성·인물 유무·색상 대비가 CTR에 복합 작용할 가능성이 있습니다.'},
+    {t:'업로드 타이밍',     score:40+Math.round(r()*55), d:'업로드 시점의 경쟁 환경과 시청자 활성도가 초반 노출에 영향을 줄 가능성이 있습니다.'},
+    {t:'콘텐츠 길이 적합도',score:45+Math.round(r()*50), d:`${Gen.durStr(dur)} 길이는 이 카테고리에서 ${r()>0.5?'적합한':'개선 여지가 있는'} 수준으로 관측됩니다.`},
+    {t:'카테고리 권위',     score:50+Math.round(r()*45), d:'채널이 해당 카테고리를 얼마나 일관되게 다뤘는지가 알고리즘 신뢰도에 영향을 줄 가능성이 있습니다.'},
+    {t:'시청자 반응 유도',  score:45+Math.round(r()*50), d:'좋아요·댓글·공유 등 반응 신호를 유도하는 CTA 설계가 성과에 영향을 줄 가능성이 있습니다.'},
+  ];
+  return { ytId, views, ctr, retention, dur, likes, score, cat, factors };
+}
+
+function genUrlAlgoReport(url){
+  const ytId = parseYtId(url);
+  const seed = ytId || url;
+  const r = Gen.rng(Gen.hash('url_a:'+seed));
+  const views     = Math.round(50000 + r()*8000000);
+  const ctr       = +(2+r()*11).toFixed(1);
+  const retention = +(25+r()*55).toFixed(1);
+  const vel       = Math.min(100, Math.round(r()*80));
+  const score     = Math.min(99, Math.round(ctr*4 + retention*0.7 + Math.log10(views)*3));
+  const algoFactors = [
+    {t:'클릭률(CTR)',          w:22, score:Math.round(Math.min(100,ctr*7)),   d:`추정 CTR ${ctr}%는 ${ctr>=7?'우수 수준으로 알고리즘 추천 확장 신호가 강합니다':'개선이 필요합니다. 썸네일·제목을 점검해보세요'}.`},
+    {t:'평균 시청 시간(AVD)',  w:20, score:Math.round(40+r()*50),             d:`영상 길이 대비 실제 시청 시간 비율이 콘텐츠 품질 신호로 작용합니다.`},
+    {t:'시청 유지율',          w:18, score:Math.round(Math.min(100,retention)),d:`추정 유지율 ${retention}%로 인트로 30초 이탈 곡선이 핵심입니다.`},
+    {t:'세션 체류',            w:14, score:Math.round(40+r()*50),             d:`영상 종료 후 플랫폼 이탈 여부가 채널 신뢰도에 누적될 가능성이 있습니다.`},
+    {t:'반응 신호',            w:10, score:Math.round(45+r()*50),             d:`좋아요·댓글 흐름이 주제 권위로 누적될 가능성이 있습니다.`},
+    {t:'신선도',               w:8,  score:Math.round(40+r()*55),             d:`발행 직후 가속 구간 성과가 장기 노출량을 결정할 가능성이 큽니다.`},
+    {t:'채널 주제 권위',       w:8,  score:Math.round(55+r()*40),             d:`채널이 이 주제를 일관되게 다뤄왔는지가 경쟁 채널 대비 우선 노출에 영향을 줍니다.`},
+  ];
+  return { ytId, views, ctr, retention, vel, score, algoFactors };
+}
+
+function renderUrlSuccessReport(d, url){
+  const totalW = d.factors.reduce((s,f)=>s+f.score,0);
+  return `<div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
+    <div style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink)">
+      <b>분석 대상 URL:</b> <span style="font-family:var(--mono);word-break:break-all">${esc(url)}</span>${d.ytId?` &nbsp;·&nbsp; <b>영상 ID:</b> <span style="font-family:var(--mono)">${esc(d.ytId)}</span>`:''}
+    </div>
+    <div class="scores" style="grid-template-columns:repeat(3,1fr)">
+      <div class="score"><div class="score__hd">추정 조회수</div><div class="score__num" style="font-size:20px">${Gen.viewStr(d.views)}</div><div class="score__note">전체 누적 추정</div></div>
+      <div class="score"><div class="score__hd">CTR 추정</div><div class="score__num" style="font-size:20px">${d.ctr}%</div><div class="score__note">${d.ctr>=7?'우수':d.ctr>=4?'보통':'개선 필요'}</div></div>
+      <div class="score"><div class="score__hd">성공 가능성</div><div class="score__num" style="font-size:20px">${d.score}</div><div class="score__note">/ 100</div></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>성공 요인 분석표</h3><span class="muted">가능성 기반 추정</span></div>
+      ${d.factors.map(f=>`<div class="factor">
+        <div class="factor__hd"><div class="factor__t">${esc(f.t)}</div></div>
+        <div class="factor__val">${f.score}<span style="font-size:11px;color:var(--ink-4);font-weight:600"> / 100</span></div>
+        <div class="factor__bar"><i style="width:${f.score}%"></i></div>
+        <div class="factor__d">${esc(f.d)}</div>
+      </div>`).join('')}
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-size:12px;color:var(--ink-3)">이 분석은 URL을 기반으로 AI가 추정한 가상 성과 지표입니다. 실제 YouTube Analytics 데이터와 다를 수 있습니다.</div>
+    </div>
+  </div>`;
+}
+
+function renderUrlAlgoReport(d, url){
+  const totalW = d.algoFactors.reduce((s,f)=>s+f.w,0);
+  return `<div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
+    <div style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink)">
+      <b>분석 대상 URL:</b> <span style="font-family:var(--mono);word-break:break-all">${esc(url)}</span>${d.ytId?` &nbsp;·&nbsp; <b>영상 ID:</b> <span style="font-family:var(--mono)">${esc(d.ytId)}</span>`:''}
+    </div>
+    <div class="scores" style="grid-template-columns:repeat(4,1fr)">
+      <div class="score"><div class="score__hd">CTR 추정</div><div class="score__num" style="font-size:20px">${d.ctr}%</div><div class="score__note">${d.ctr>=7?'우수':d.ctr>=4?'보통':'개선 필요'}</div></div>
+      <div class="score"><div class="score__hd">유지율 추정</div><div class="score__num" style="font-size:20px">${d.retention}%</div><div class="score__note">${d.retention>=50?'우수':d.retention>=35?'보통':'개선 필요'}</div></div>
+      <div class="score"><div class="score__hd">속도 지수</div><div class="score__num" style="font-size:20px">${d.vel}</div><div class="score__note">/ 100</div></div>
+      <div class="score"><div class="score__hd">알고리즘 점수</div><div class="score__num" style="font-size:20px">${d.score}</div><div class="score__note">/ 100</div></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card__hd"><h3>가중 신호별 분석</h3><span class="muted">상대 비중 · 가설 기반</span></div>
+      ${d.algoFactors.map(f=>`<div class="factor">
+        <div class="factor__hd"><div class="factor__t">${esc(f.t)}</div><span class="factor__w">비중 ${Math.round(f.w/totalW*100)}%</span></div>
+        <div class="factor__val">${f.score}<span style="font-size:11px;color:var(--ink-4);font-weight:600"> / 100</span></div>
+        <div class="factor__bar"><i style="width:${f.score}%"></i></div>
+        <div class="factor__d">${esc(f.d)}</div>
+      </div>`).join('')}
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-size:12px;color:var(--ink-3)">이 분석은 URL을 기반으로 AI가 추정한 가상 알고리즘 신호입니다. 실제 YouTube Studio 데이터와 다를 수 있습니다.</div>
+    </div>
+  </div>`;
+}
+
 /* ─────────────── Util ─────────────── */
 function scoreColor(s){ if (s >= 70) return 'var(--ok)'; if (s >= 50) return 'var(--accent)'; if (s >= 35) return 'var(--warn)'; return 'var(--danger)'; }
 function verdict(s){ if (s >= 75) return '강한 상승 가능성'; if (s >= 60) return '상승 신호 누적'; if (s >= 45) return '관망 가능'; return '신호 약함'; }
@@ -1948,6 +2361,9 @@ function bootstrap(){
   });
   document.getElementById('hdSettings').addEventListener('click', () => App.go('settings'));
 
+  // Brand button → home
+  document.getElementById('brandBtn').addEventListener('click', () => App.go('home'));
+
   // Mobile
   document.getElementById('burger').addEventListener('click', () => { document.getElementById('sb').classList.add('is-open'); document.getElementById('scrim').classList.add('is-show'); });
   document.getElementById('scrim').addEventListener('click', () => { document.getElementById('sb').classList.remove('is-open'); document.getElementById('scrim').classList.remove('is-show'); });
@@ -1955,6 +2371,29 @@ function bootstrap(){
   // Top search
   const top = document.getElementById('topSearch');
   top.addEventListener('keydown', e => { if (e.key === 'Enter' && top.value.trim()){ App.analyzeAndShow(top.value.trim()); top.blur(); } });
+
+  // Modal init
+  VidModal.init();
+
+  // Global action button handler (delegation)
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-va]');
+    if (!btn) return;
+    const va = btn.dataset.va;
+    if (va === 'copyVid' || va === 'copyCh'){
+      const url = btn.dataset.url;
+      const fallback = () => { try{ const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta); }catch(err){} };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(()=>toast('URL이 클립보드에 복사되었습니다')).catch(()=>{ fallback(); toast('URL이 클립보드에 복사되었습니다'); });
+      else { fallback(); toast('URL이 클립보드에 복사되었습니다'); }
+      return;
+    }
+    const v = VidRegistry[btn.dataset.key];
+    if (!v) return;
+    openVidModal(va, v);
+  });
+
+  // ESC key closes modal
+  document.addEventListener('keydown', e => { if (e.key==='Escape') VidModal.close(); });
 
   // 설정 뱃지 초기화
   SettingsCfg.save({}); // triggers badge sync
