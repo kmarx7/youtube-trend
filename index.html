@@ -1567,7 +1567,14 @@ function renderLoading(keyword){
 async function renderAnalysis(){
   const a = App.current;
   if (!a){
-    const topics = genTrendingTopics(App.region);
+    // 로딩 인디케이터
+    main.innerHTML = `
+      <div class="page-head"><div><h1>주제/키워드 분석</h1><p>급상승 주제를 불러오는 중입니다…</p></div></div>
+      <div class="card" style="padding:40px;text-align:center;color:var(--ink-3)">
+        <div class="skeleton" style="height:14px;width:40%;margin:0 auto 12px"></div>
+        <div class="skeleton" style="height:14px;width:60%;margin:0 auto"></div>
+      </div>`;
+    const topics = await fetchRealTrendingTopics(App.region);
     main.innerHTML = `
       <div class="page-head"><div><h1>주제/키워드 분석</h1><p>분석할 주제·키워드를 직접 입력하거나, 아래 급상승 주제 중 하나를 클릭하세요.</p></div></div>
       <div class="card" style="margin-bottom:18px">
@@ -1591,6 +1598,7 @@ async function renderAnalysis(){
                 <div class="topic-card__rank">${t.rank}</div>
                 <div class="topic-card__t">${esc(t.keyword)}</div>
                 <span class="chip ${t.growth>50?'chip--ok':'chip--accent'}" style="font-size:10px;padding:2px 7px">${t.growth>50?'급상승':'상승'} +${t.growth}%</span>
+                ${t.isReal?'<span class="chip chip--ok" style="font-size:9px;padding:1px 6px;margin-left:4px">실제</span>':''}
               </div>
               <div class="topic-card__desc">${esc(t.desc)}</div>
               <div class="topic-card__bar"><span style="width:${t.score}%"></span></div>
@@ -2344,6 +2352,32 @@ function genSuccessFactors(v, r){
 }
 
 /* ─────────────── Trending Topics ─────────────── */
+async function fetchRealTrendingTopics(region){
+  const cfg = SettingsCfg.load();
+  if (cfg.useReal && cfg.youtubeApiKey){
+    try {
+      const videos = await API.trending({ region, window:'24h' });
+      if (videos && videos.length){
+        return videos.slice(0,10).map((v,i) => {
+          const growthPct = Math.round(Math.min(999, (v.delta24h / Math.max(v.views,1)) * 100 * 10));
+          const rk = Gen.rng(Gen.hash('rtk:'+v.id));
+          return {
+            rank: i+1,
+            keyword: v.title,
+            score: v.score,
+            growth: Math.max(5, growthPct),
+            category: v.category,
+            isReal: true,
+            desc: `${v.channel} 채널의 실제 급상승 영상입니다. 조회수 ${Gen.viewStr(v.views)} · 24시간 ${Gen.viewStr(v.delta24h)} 증가 · ${v.category.name} 분야.`,
+            prediction: `1M후 ${Math.min(98, Math.round(v.score + rk()*12 - 4))}점 추정`,
+          };
+        });
+      }
+    } catch(e){ toast('토픽 로딩 오류: '+e.message); }
+  }
+  return genTrendingTopics(region);
+}
+
 function genTrendingTopics(region){
   const r = Gen.rng(Gen.hash('tk:'+region+':'+new Date().toDateString()));
   const pool = [
