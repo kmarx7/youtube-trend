@@ -412,6 +412,50 @@
   .modal-player__link:hover{background:oklch(0.2 0.04 262)}
   .modal-player__icon{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center}
   .modal-player__sub{font-size:11.5px;font-weight:400;color:rgba(255,255,255,.6);margin-top:2px}
+
+  /* ── 콘텐츠 아이디어 생성기 ── */
+  .idea-kw-form{display:flex;gap:8px;margin-bottom:22px}
+  .idea-title-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:flex-start;gap:12px;transition:border-color .14s,box-shadow .14s;cursor:default}
+  .idea-title-card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+  .idea-title-num{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .idea-title-text{font-size:14px;font-weight:650;line-height:1.45;flex:1}
+  .idea-title-why{font-size:11.5px;color:var(--ink-3);margin-top:4px}
+  .idea-tag{display:inline-flex;align-items:center;padding:4px 10px;border-radius:99px;background:var(--bg-sunken);border:1px solid var(--line);font-size:12px;color:var(--ink-2);margin:3px;cursor:pointer;transition:background .12s,border-color .12s}
+  .idea-tag:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+  .idea-time-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .idea-time-cell{border-radius:6px;padding:6px 2px;text-align:center;font-size:10px;font-weight:600;color:#fff}
+  .idea-thumb-box{background:linear-gradient(135deg,oklch(0.18 0.04 262),oklch(0.12 0.03 240));border-radius:10px;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:1.4}
+
+  /* ── 트렌드 모니터링 ── */
+  .monitor-kw-list{display:flex;flex-direction:column;gap:8px}
+  .monitor-kw-row{display:flex;align-items:center;gap:10px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px}
+  .monitor-kw-name{font-size:13.5px;font-weight:650;flex:1}
+  .monitor-score-bar{flex:none;width:120px;height:6px;background:var(--bg-sunken);border-radius:99px;overflow:hidden}
+  .monitor-score-fill{height:100%;border-radius:99px;transition:width .4s}
+  .monitor-kw-del{border:0;background:none;color:var(--ink-4);cursor:pointer;font-size:16px;flex:none;padding:0 4px;line-height:1}
+  .monitor-kw-del:hover{color:var(--danger)}
+  .monitor-alert{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r-md);background:var(--ok-soft);border:1px solid oklch(0.82 0.1 155);font-size:12.5px}
+  .monitor-alert--warn{background:var(--warn-soft);border-color:oklch(0.84 0.12 75)}
+
+  /* ── 영상 최적화 ── */
+  .opt-score-ring{width:72px;height:72px;flex:none}
+  .opt-item{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line)}
+  .opt-item:last-child{border-bottom:0}
+  .opt-item__grade{width:36px;height:22px;border-radius:5px;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+  .opt-item__t{font-size:13px;font-weight:650;margin-bottom:3px}
+  .opt-item__d{font-size:12px;color:var(--ink-3);line-height:1.5}
+  .opt-suggest{background:oklch(0.97 0.015 262);border:1px solid oklch(0.88 0.06 262);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.5}
+
+  /* ── 수익화 분석 ── */
+  .rev-hero{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+  .rev-cell{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;text-align:center}
+  .rev-cell__h{font-size:11.5px;color:var(--ink-3);font-weight:600;margin-bottom:6px}
+  .rev-cell__v{font-size:22px;font-weight:750;color:var(--ink);letter-spacing:-0.02em}
+  .rev-cell__s{font-size:11px;color:var(--ink-4);margin-top:3px}
+  .rev-tier{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r-md);background:var(--bg-sunken);margin-bottom:6px}
+  .rev-tier__dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .rev-tier__name{font-size:12.5px;font-weight:650;flex:1}
+  .rev-tier__val{font-size:12.5px;color:var(--ink-2);font-weight:600}
   /* Topic grid */
   .topic-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
   .topic-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
@@ -532,6 +576,24 @@
       <div class="nav__item" data-view="compare">
         <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/><path d="M21 15v4a2 2 0 0 1-2 2h-4"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="12" y1="9" x2="12" y2="15"/></svg>
         <span>채널 비교</span>
+      </div>
+
+      <div class="sb__group">AI 도구</div>
+      <div class="nav__item" data-view="ideas">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.6-1.4 4.9-3.5 6.2V17a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-1.8C6.4 13.9 5 11.6 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="17" x2="14" y2="17"/></svg>
+        <span>콘텐츠 아이디어</span>
+      </div>
+      <div class="nav__item" data-view="monitor">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span>트렌드 모니터링</span>
+      </div>
+      <div class="nav__item" data-view="optimize">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+        <span>영상 최적화</span>
+      </div>
+      <div class="nav__item" data-view="revenue">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>수익화 분석</span>
       </div>
 
       <div class="sb__group">기록</div>
@@ -992,6 +1054,146 @@ const API = (() => {
         if (!m) throw new Error('JSON 파싱 실패');
         return JSON.parse(m[0]);
       } catch(e){ toast('AI 인사이트 오류: '+e.message); return null; }
+    },
+
+    /* ── 콘텐츠 아이디어 생성기 ── */
+    async contentIdeas(keyword){
+      await wait(200);
+      const r = Gen.rng(Gen.hash('ci:'+keyword));
+      const hooks = ['이유가 있다','당신이 모르는','지금 당장 해야 할','전문가가 말하는','충격적인','완벽한 가이드:','실제로 해봤습니다:','솔직히 말하면'];
+      const formats = ['Vlog','리뷰','랭킹','도전','비교','튜토리얼','Q&A','실험'];
+      const titles = Array.from({length:5}, (_,i) => {
+        const hook = hooks[Math.floor(r()*hooks.length)];
+        const fmt  = formats[Math.floor(r()*formats.length)];
+        const n = Math.floor(r()*8)+3;
+        const variants = [
+          `${hook} ${keyword} ${fmt}`,
+          `${keyword}를 ${Math.floor(r()*20)+5}일 동안 해봤습니다`,
+          `${n}가지 ${keyword} 방법 — 당신이 몰랐던 것들`,
+          `${keyword} ${fmt} | 처음 해보는 분들을 위한 완벽 정리`,
+          `${keyword}의 진실 — ${hook}`,
+        ];
+        const text = variants[i % variants.length];
+        const whys = ['후킹 강도 높음','리스트형 클릭률↑','검색 의도 일치','호기심 유발','감성 어필'];
+        return { text, why: whys[i] };
+      });
+      const tags = [keyword, ...Array.from({length:19}, (_,i) => {
+        const mods = ['입문','추천','방법','비교','후기','정리','가이드','꿀팁','2025','브이로그','최신','순위','리뷰','실험','도전','성공','실패','솔직','현실','정보'];
+        return `${keyword} ${mods[i]}`;
+      })];
+      const uploadTimes = [
+        {day:'월',h:'19-21시',score:72},{ day:'화',h:'19-21시',score:68},{day:'수',h:'18-20시',score:74},
+        {day:'목',h:'19-21시',score:70},{day:'금',h:'17-20시',score:78},{day:'토',h:'11-14시',score:82},{day:'일',h:'20-22시',score:80},
+      ];
+      const thumbTexts = [
+        `${keyword.slice(0,8)} 충격 결과`,
+        `${Math.floor(r()*5)+3}가지 비밀`,
+        `전문가도 몰랐다`,
+        `이거 진짜예요`,
+      ];
+      return { keyword, titles, tags, uploadTimes, thumbTexts };
+    },
+    async aiContentIdeas(keyword, base){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      try {
+        const txt = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content:'유튜브 콘텐츠 전략 AI. 반드시 유효한 JSON만 출력.' },
+          { role:'user', content:`키워드: "${keyword}"\n\n이 키워드로 유튜브에서 성공할 가능성이 높은 콘텐츠 전략을 수립하세요.\n한국어 (JSON):\n{"hook":"이 키워드의 핵심 후킹 포인트 1~2문장","angles":["다루지 않은 신선한 각도 1","각도 2","각도 3"],"seriesIdea":"시리즈 기획 아이디어 1가지 2~3문장","cta":"영상 말미 CTA 문구 예시"}` }
+        ]);
+        const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
+        return JSON.parse(m[0]);
+      } catch(e){ return null; }
+    },
+
+    /* ── 트렌드 모니터링 ── */
+    async monitorScore(keyword){
+      await wait(80);
+      const r = Gen.rng(Gen.hash('ms:'+keyword+':'+Math.floor(Date.now()/60000)));
+      const base = Gen.rng(Gen.hash('msb:'+keyword))();
+      const score = Math.round(base*60 + r()*40);
+      const prev  = Math.round(base*60 + Gen.rng(Gen.hash('msp:'+keyword))()* 40);
+      const delta = score - prev;
+      return { keyword, score, prev, delta, alert: score > 75 };
+    },
+
+    /* ── 영상 최적화 ── */
+    async videoOptimize(urlOrId){
+      const ytId = parseYtId(urlOrId) || urlOrId;
+      const cfg  = SettingsCfg.load();
+      let rv = null;
+      if (ytId && cfg.youtubeApiKey && cfg.useReal){
+        try { rv = await API.videoById(ytId); } catch(_){}
+      }
+      await wait(150);
+      const r = Gen.rng(Gen.hash('vo:'+ytId));
+      const title   = rv?.title   || `샘플 영상 제목 — ${ytId}`;
+      const channel = rv?.channel || '샘플 채널';
+      const views   = rv?.views   || Math.round(10000 + r()*500000);
+      const titleLen = title.length;
+      const hasPowerWord = /충격|비밀|모르는|진짜|최초|완벽|폭발|반전|놀라/.test(title);
+      const titleScore = Math.min(100, Math.round(50 + (titleLen>=20&&titleLen<=60?20:0) + (hasPowerWord?15:0) + r()*15));
+      const tagScore   = Math.round(50 + r()*45);
+      const thumbScore = Math.round(40 + r()*55);
+      const descScore  = Math.round(45 + r()*50);
+      const overall    = Math.round((titleScore+tagScore+thumbScore+descScore)/4);
+      const items = [
+        { label:'제목 최적화', score:titleScore, suggest: titleLen<20?'제목이 너무 짧습니다. 20~60자 사이가 클릭률에 유리합니다.':titleLen>70?'제목이 너무 길어 검색 결과에서 잘릴 수 있습니다.':hasPowerWord?'강조 단어가 포함되어 있어 클릭률에 긍정적입니다.':'감정·호기심을 자극하는 단어 추가를 권장합니다.' },
+        { label:'썸네일 임팩트', score:thumbScore, suggest:'밝은 색상 대비, 얼굴 클로즈업, 3단어 이내 텍스트가 CTR을 높입니다.' },
+        { label:'설명란 SEO', score:descScore, suggest:'첫 2줄에 핵심 키워드를 포함하고, 타임스탬프와 링크를 추가하세요.' },
+        { label:'태그 구성', score:tagScore, suggest:'주요 키워드 5개 + 관련 키워드 15개 + 채널 브랜드 태그를 권장합니다.' },
+      ];
+      return { ytId, title, channel, views, overall, items, isReal:!!rv };
+    },
+    async aiVideoOptimize(data){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      try {
+        const txt = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content:'YouTube SEO 최적화 전문 AI. 반드시 유효한 JSON만 출력.' },
+          { role:'user', content:`영상 제목: "${data.title}"\n채널: ${data.channel}\n조회수: ${data.views}\n\n이 영상의 YouTube 알고리즘 노출 최적화를 위한 구체적 개선안을 제시하세요.\n한국어 (JSON):\n{"titleSuggestion":"개선된 제목 제안 (원본보다 구체적으로)","descriptionOpening":"첫 2줄 설명란 문구 예시","topTags":["핵심태그1","태그2","태그3","태그4","태그5"],"thumbnailTip":"썸네일 개선 한 문장","overallTip":"종합 SEO 전략 2문장"}` }
+        ]);
+        const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
+        return JSON.parse(m[0]);
+      } catch(e){ return null; }
+    },
+
+    /* ── 수익화 분석 ── */
+    async revenueEstimate(subs, category, monthlyViews){
+      await wait(120);
+      const CPM_BY_CAT = {
+        '교육':4.2, '경제·재테크':6.8, '과학·기술':5.5, '뷰티·패션':3.8,
+        '게임':2.9, '음악':1.8, '엔터테인먼트':3.1, '푸드':3.4,
+        '스포츠':3.0, '여행':4.5, '라이프스타일':3.6, '뉴스':4.0,
+        '코미디':2.5, '자동차':5.2
+      };
+      const cpm = CPM_BY_CAT[category] || 3.5;
+      const rpm = cpm * 0.55;
+      const monthly = Math.round(monthlyViews / 1000 * rpm);
+      const sponsorMin = Math.round(subs / 1000 * 0.8);
+      const sponsorMax = Math.round(subs / 1000 * 3);
+      const memberPot  = Math.round(subs * 0.002 * 4.99);
+      return {
+        cpm, rpm, monthly,
+        sponsorMin, sponsorMax, memberPot,
+        tiers: [
+          { name:'AdSense 수익', val:`₩${(monthly*1100).toLocaleString()}`, dot:'oklch(0.55 0.15 255)' },
+          { name:'스폰서십 단가', val:`$${sponsorMin}~$${sponsorMax}/편`, dot:'oklch(0.52 0.14 155)' },
+          { name:'멤버십 잠재', val:`₩${(memberPot*1100).toLocaleString()}/월`, dot:'oklch(0.58 0.16 75)' },
+        ]
+      };
+    },
+    async aiRevenueAdvice(data){
+      const cfg = SettingsCfg.load();
+      if (!cfg.aiApiKey) return null;
+      try {
+        const txt = await openAiFetch(cfg.aiApiKey, [
+          { role:'system', content:'YouTube 수익화 전략 AI. 반드시 유효한 JSON만 출력.' },
+          { role:'user', content:`구독자: ${data.subs}, 카테고리: ${data.category}, 월 예상수익: $${data.monthly}\n\n이 채널의 수익화를 극대화할 전략을 제안하세요.\n한국어 (JSON):\n{"diagnosis":"현재 수익 상태 진단 2문장","strategies":["수익 극대화 전략 1","전략 2","전략 3"],"quickWin":"빠른 수익 개선 방법 1가지 (1주 내 실행 가능)"}` }
+        ]);
+        const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
+        return JSON.parse(m[0]);
+      } catch(e){ return null; }
     },
 
     async relatedVideos(keyword, n){ await wait(120); return Gen.relatedVideos(keyword, n||10); },
@@ -1546,6 +1748,10 @@ function render(){
     case 'settings':      return renderSettings();
     case 'channel':       return renderChannel();
     case 'compare':       return renderCompare();
+    case 'ideas':         return renderIdeas();
+    case 'monitor':       return renderMonitor();
+    case 'optimize':      return renderOptimize();
+    case 'revenue':       return renderRevenue();
     default:              return renderHome();
   }
 }
@@ -2848,6 +3054,338 @@ function renderCompareDetail(channels){
 
     ${aiSectionSkeleton('cmpAi')}
   `;
+}
+
+/* ── 콘텐츠 아이디어 생성기 ── */
+function renderIdeas(){
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>콘텐츠 아이디어 생성기</h1><p>트렌드 키워드를 입력하면 AI가 제목·태그·썸네일·업로드 시간을 추천합니다.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:22px">
+      <div class="card__hd"><h3>키워드 입력</h3></div>
+      <form id="ideaForm" class="idea-kw-form">
+        <input id="ideaInput" class="field__input" style="flex:1;height:44px;font-size:14px;font-family:var(--font)" placeholder="예: 미니멀 캠핑, 하루 한 끼, 재테크" autocomplete="off"/>
+        <button type="submit" class="btn btn--primary" style="height:44px;padding:0 22px;white-space:nowrap">아이디어 생성</button>
+      </form>
+    </div>
+    <div id="ideaResult"></div>
+  `;
+  document.getElementById('ideaForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const kw = document.getElementById('ideaInput').value.trim();
+    if (!kw) return;
+    const el = document.getElementById('ideaResult');
+    el.innerHTML = `<div class="skeleton" style="height:340px;border-radius:16px"></div>`;
+    const [data, aiData] = await Promise.all([API.contentIdeas(kw), API.aiContentIdeas(kw)]);
+    const days = ['월','화','수','목','금','토','일'];
+    const maxScore = Math.max(...data.uploadTimes.map(t=>t.score));
+    el.innerHTML = `
+      <div class="grid-2-eq" style="margin-bottom:18px">
+        <div class="card">
+          <div class="card__hd"><h3>제목 아이디어 5선</h3><span class="muted">클릭률 관점 추정</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${data.titles.map((t,i)=>`
+              <div class="idea-title-card">
+                <div class="idea-title-num">${i+1}</div>
+                <div>
+                  <div class="idea-title-text">${esc(t.text)}</div>
+                  <div class="idea-title-why">${esc(t.why)}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div class="card">
+            <div class="card__hd"><h3>최적 업로드 시간</h3><span class="muted">가능성 기반 추정</span></div>
+            <div class="idea-time-grid">
+              ${data.uploadTimes.map(t=>{
+                const pct = Math.round(t.score/maxScore*100);
+                const bg = t.score===maxScore?'oklch(0.52 0.14 155)':t.score>=75?'oklch(0.55 0.15 255)':'oklch(0.7 0.08 260)';
+                return `<div class="idea-time-cell" style="background:${bg};opacity:${0.5+pct/200}">
+                  <div>${t.day}</div><div style="font-size:9px;margin-top:2px">${t.score}</div>
+                </div>`;
+              }).join('')}
+            </div>
+            <div style="font-size:11px;color:var(--ink-4);margin-top:8px">숫자는 가능성 점수 (가능성 기반 추정)</div>
+          </div>
+          <div class="card">
+            <div class="card__hd"><h3>썸네일 문구 아이디어</h3></div>
+            <div class="idea-thumb-box">
+              ${data.thumbTexts.map((t,i)=>`<div style="opacity:${1-i*0.2};font-size:${14-i*1.5}px">${esc(t)}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card__hd"><h3>추천 태그 20개</h3><span class="muted">클릭으로 복사</span></div>
+        <div>${data.tags.map((t,i)=>`<span class="idea-tag" onclick="navigator.clipboard&&navigator.clipboard.writeText('${escAttr(t)}').then(()=>toast('태그 복사됨'))">#${esc(t)}</span>`).join('')}</div>
+      </div>
+      ${aiData ? `
+      <div class="ai-section">
+        <div class="ai-section__hd">
+          <span class="ai-badge">✦ AI</span>
+          <span class="ai-section__t">AI 콘텐츠 전략</span>
+          <span class="ai-section__sub">OpenAI GPT-4o mini · 가능성 기반</span>
+        </div>
+        <div class="ai-summary">${esc(aiData.hook||'')}</div>
+        <div class="ai-cols">
+          <div>
+            <div class="ai-col__t">신선한 콘텐츠 각도</div>
+            ${(aiData.angles||[]).map(a=>`<div class="ai-opp">↗ ${esc(a)}</div>`).join('')}
+          </div>
+          <div>
+            <div class="ai-col__t">시리즈 기획 아이디어</div>
+            <div class="ai-idea-card"><div class="ai-idea-card__d">${esc(aiData.seriesIdea||'')}</div></div>
+            ${aiData.cta?`<div class="ai-col__t" style="margin-top:14px">CTA 문구 예시</div><div class="ai-idea-card"><div class="ai-idea-card__d">"${esc(aiData.cta)}"</div></div>`:''}
+          </div>
+        </div>
+      </div>` : ''}
+    `;
+  });
+}
+
+/* ── 트렌드 모니터링 ── */
+const MonitorStore = {
+  KEY: 'signalmap.v1.monitor',
+  load(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'[]'); }catch{ return []; } },
+  save(list){ localStorage.setItem(this.KEY, JSON.stringify(list)); },
+  add(kw){ const list=this.load(); if(!list.includes(kw)&&list.length<10){ list.push(kw); this.save(list); } },
+  remove(kw){ this.save(this.load().filter(k=>k!==kw)); },
+};
+
+async function renderMonitor(){
+  const keywords = MonitorStore.load();
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>트렌드 모니터링</h1><p>관심 키워드를 등록하면 트렌드 변화를 추적합니다. 최대 10개.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:22px">
+      <div class="card__hd"><h3>키워드 등록</h3><span class="muted">${keywords.length}/10</span></div>
+      <form id="monitorForm" style="display:flex;gap:8px">
+        <input id="monitorInput" class="field__input" style="flex:1;height:40px;font-family:var(--font)" placeholder="모니터링할 키워드 입력" autocomplete="off"/>
+        <button type="submit" class="btn btn--primary" style="height:40px;padding:0 18px">추가</button>
+      </form>
+    </div>
+    <div id="monitorList">
+      ${keywords.length===0 ? `<div class="empty"><h4>등록된 키워드가 없습니다</h4><p>위에서 키워드를 추가하세요.</p></div>` :
+        `<div class="card"><div class="card__hd"><h3>모니터링 현황</h3><span class="muted">실시간 가능성 점수 · 매 방문 시 갱신</span></div>
+         <div class="monitor-kw-list" id="monitorRows"><div class="skeleton" style="height:200px;border-radius:10px"></div></div></div>`}
+    </div>
+  `;
+  document.getElementById('monitorForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const kw = document.getElementById('monitorInput').value.trim();
+    if (!kw){ toast('키워드를 입력하세요'); return; }
+    MonitorStore.add(kw);
+    toast(`"${kw}" 등록됨`);
+    renderMonitor();
+  });
+  if (keywords.length > 0){
+    const scores = await Promise.all(keywords.map(kw => API.monitorScore(kw)));
+    const rows = document.getElementById('monitorRows');
+    if (!rows) return;
+    const alerts = scores.filter(s=>s.alert);
+    rows.innerHTML = `
+      ${alerts.length ? `<div style="margin-bottom:12px">${alerts.map(s=>`
+        <div class="monitor-alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0.13 155)" stroke-width="2.2" stroke-linecap="round"><path d="M12 22c1.1 0 2-.9 2-2H10a2 2 0 0 0 2 2z"/><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+          <div><b>"${esc(s.keyword)}"</b> 가능성 점수 ${s.score}점 — 트렌드 급상승 신호 감지 (가능성 기반)</div>
+        </div>`).join('')}</div>` : ''}
+      ${scores.map(s=>{
+        const color = s.score>=75?'oklch(0.52 0.14 155)':s.score>=50?'oklch(0.55 0.15 255)':'oklch(0.7 0.08 260)';
+        const arrow = s.delta>5?'↑':s.delta<-5?'↓':'→';
+        const arrowColor = s.delta>5?'var(--ok)':s.delta<-5?'var(--danger)':'var(--ink-4)';
+        return `<div class="monitor-kw-row">
+          <div class="monitor-kw-name">${esc(s.keyword)}</div>
+          <div style="font-size:20px;font-weight:750;width:36px;text-align:right;color:${color}">${s.score}</div>
+          <div class="monitor-score-bar"><div class="monitor-score-fill" style="width:${s.score}%;background:${color}"></div></div>
+          <div style="font-size:13px;font-weight:700;color:${arrowColor};width:24px;text-align:center">${arrow}</div>
+          <div style="font-size:11px;color:var(--ink-4);width:60px">${s.delta>0?'+':''}${s.delta}점 변화</div>
+          <button class="monitor-kw-del" data-del="${escAttr(s.keyword)}">✕</button>
+        </div>`;
+      }).join('')}
+    `;
+    rows.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => {
+      MonitorStore.remove(btn.dataset.del);
+      toast(`"${btn.dataset.del}" 삭제됨`);
+      renderMonitor();
+    }));
+  }
+}
+
+/* ── 영상 최적화 도구 ── */
+async function renderOptimize(){
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>영상 최적화 도구</h1><p>YouTube URL을 입력하면 제목·설명·태그·썸네일·업로드 시간 SEO를 AI가 분석합니다.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:22px">
+      <div class="card__hd"><h3>영상 URL 입력</h3></div>
+      <form id="optForm" style="display:flex;gap:8px">
+        <input id="optInput" class="field__input" style="flex:1;height:44px;font-size:13.5px;font-family:var(--font)" placeholder="https://www.youtube.com/watch?v=... 또는 youtu.be/..." autocomplete="off"/>
+        <button type="submit" class="btn btn--primary" style="height:44px;padding:0 20px;white-space:nowrap">분석 시작</button>
+      </form>
+    </div>
+    <div id="optResult"></div>
+  `;
+  document.getElementById('optForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const url = document.getElementById('optInput').value.trim();
+    if (!url){ toast('URL을 입력하세요'); return; }
+    const el = document.getElementById('optResult');
+    el.innerHTML = `<div class="skeleton" style="height:400px;border-radius:16px"></div>`;
+    const [data, aiData] = await Promise.all([API.videoOptimize(url), Promise.resolve(null)]);
+    const aiProm = API.aiVideoOptimize(data);
+    const gradeColor = s => s>=80?'oklch(0.48 0.14 155)':s>=60?'oklch(0.55 0.15 255)':'oklch(0.6 0.18 25)';
+    const gradeLabel = s => s>=80?'우수':s>=60?'보통':'개선 필요';
+    // SVG ring helper
+    const ring = (score, color) => {
+      const r=28, c=36, circ=2*Math.PI*r;
+      const dash = circ*(score/100);
+      return `<svg class="opt-score-ring" viewBox="0 0 72 72">
+        <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--bg-sunken)" stroke-width="7"/>
+        <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${color}" stroke-width="7"
+          stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
+        <text x="${c}" y="${c+5}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">${score}</text>
+      </svg>`;
+    };
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:18px">
+        <div class="card__hd">
+          <div>
+            <h3>${esc(data.title)}</h3>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:3px">${esc(data.channel)} · ${data.isReal?'<span style="color:var(--ok)">실제 데이터</span>':'추정 데이터'}</div>
+          </div>
+          <div style="text-align:center">
+            ${ring(data.overall, gradeColor(data.overall))}
+            <div style="font-size:11px;color:var(--ink-3);margin-top:2px">종합 SEO 점수</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          ${data.items.map(item=>`
+            <div class="opt-item">
+              <div class="opt-item__grade" style="background:${gradeColor(item.score)}">${gradeLabel(item.score)}</div>
+              <div style="flex:1">
+                <div class="opt-item__t">${esc(item.label)} <span style="font-size:12px;font-weight:400;color:var(--ink-3)">(${item.score}점)</span></div>
+                <div class="opt-suggest">${esc(item.suggest)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+      ${aiSectionSkeleton('optAi')}
+    `;
+    const cfg = SettingsCfg.load();
+    if (cfg.aiApiKey){
+      document.getElementById('optAi').style.display = '';
+      aiProm.then(d => { if(d) aiSectionShow('optAi', 'AI SEO 최적화 리포트', `
+        <div class="ai-summary">${esc(d.overallTip||'')}</div>
+        <div class="ai-cols">
+          <div>
+            <div class="ai-col__t">개선된 제목 제안</div>
+            <div class="ai-idea-card" style="margin-bottom:12px"><div class="ai-idea-card__d" style="font-weight:650">"${esc(d.titleSuggestion||'')}"</div></div>
+            <div class="ai-col__t">설명란 오프닝 문구</div>
+            <div class="ai-idea-card"><div class="ai-idea-card__d">${esc(d.descriptionOpening||'')}</div></div>
+          </div>
+          <div>
+            <div class="ai-col__t">핵심 태그 5개</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">${(d.topTags||[]).map(t=>`<span class="chip chip--accent">#${esc(t)}</span>`).join('')}</div>
+            <div class="ai-col__t">썸네일 개선 팁</div>
+            <div class="ai-idea-card"><div class="ai-idea-card__d">${esc(d.thumbnailTip||'')}</div></div>
+          </div>
+        </div>
+      `); });
+    }
+  });
+}
+
+/* ── 수익화 분석 ── */
+function renderRevenue(){
+  const catList = ['교육','경제·재테크','과학·기술','뷰티·패션','게임','음악','엔터테인먼트','푸드','스포츠','여행','라이프스타일','뉴스','코미디','자동차'];
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>수익화 분석</h1><p>구독자·카테고리·월 조회수를 입력하면 예상 수익과 수익화 전략을 분석합니다. 가능성 기반 추정입니다.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:22px">
+      <div class="card__hd"><h3>채널 정보 입력</h3></div>
+      <form id="revForm">
+        <div class="grid-2-eq" style="margin-bottom:14px">
+          <div class="field">
+            <label class="field__lbl">구독자 수</label>
+            <input id="revSubs" class="field__input" type="number" min="0" placeholder="예: 50000" style="font-family:var(--font)" value="10000"/>
+          </div>
+          <div class="field">
+            <label class="field__lbl">월 평균 조회수</label>
+            <input id="revViews" class="field__input" type="number" min="0" placeholder="예: 200000" style="font-family:var(--font)" value="100000"/>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label class="field__lbl">주요 카테고리</label>
+          <select id="revCat" class="field__input" style="font-family:var(--font)">
+            ${catList.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary" style="height:42px;padding:0 24px">수익 분석하기</button>
+      </form>
+    </div>
+    <div id="revResult"></div>
+  `;
+  document.getElementById('revForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const subs   = parseInt(document.getElementById('revSubs').value)||0;
+    const views  = parseInt(document.getElementById('revViews').value)||0;
+    const cat    = document.getElementById('revCat').value;
+    const el = document.getElementById('revResult');
+    el.innerHTML = `<div class="skeleton" style="height:300px;border-radius:16px"></div>`;
+    const [data, aiData] = await Promise.all([
+      API.revenueEstimate(subs, cat, views),
+      API.aiRevenueAdvice({ subs, category:cat, monthly: Math.round(views/1000*((({'교육':4.2,'경제·재테크':6.8,'과학·기술':5.5})[cat]||3.5)*0.55)) })
+    ]);
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:18px">
+        <div class="card__hd"><h3>월 예상 수익 개요</h3><span class="muted">${esc(cat)} · 가능성 기반 추정</span></div>
+        <div class="rev-hero">
+          <div class="rev-cell"><div class="rev-cell__h">CPM 추정</div><div class="rev-cell__v">$${data.cpm}</div><div class="rev-cell__s">1,000 조회당</div></div>
+          <div class="rev-cell"><div class="rev-cell__h">RPM 추정</div><div class="rev-cell__v">$${data.rpm.toFixed(2)}</div><div class="rev-cell__s">실수령 추정</div></div>
+          <div class="rev-cell"><div class="rev-cell__h">월 AdSense</div><div class="rev-cell__v">$${data.monthly}</div><div class="rev-cell__s">≈ ₩${(data.monthly*1100).toLocaleString()}</div></div>
+          <div class="rev-cell"><div class="rev-cell__h">스폰서 단가</div><div class="rev-cell__v">$${data.sponsorMin}</div><div class="rev-cell__s">~$${data.sponsorMax}/편</div></div>
+          <div class="rev-cell"><div class="rev-cell__h">멤버십 잠재</div><div class="rev-cell__v">₩${(data.memberPot*1100).toLocaleString()}</div><div class="rev-cell__s">/월 (0.2% 전환)</div></div>
+        </div>
+        <div>
+          ${data.tiers.map(t=>`<div class="rev-tier">
+            <div class="rev-tier__dot" style="background:${t.dot}"></div>
+            <div class="rev-tier__name">${esc(t.name)}</div>
+            <div class="rev-tier__val">${esc(t.val)}</div>
+          </div>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:12px;padding:10px;background:var(--bg-sunken);border-radius:8px">
+          ⚠ 이 추정치는 업계 평균 CPM 데이터 기반의 가능성 추정입니다. 실제 수익은 시청자 국가, 시즌, 콘텐츠 품질에 따라 크게 다를 수 있습니다.
+        </div>
+      </div>
+      ${aiData ? `
+      <div class="ai-section">
+        <div class="ai-section__hd">
+          <span class="ai-badge">✦ AI</span>
+          <span class="ai-section__t">AI 수익화 전략</span>
+          <span class="ai-section__sub">OpenAI GPT-4o mini · 가능성 기반</span>
+        </div>
+        <div class="ai-summary">${esc(aiData.diagnosis||'')}</div>
+        <div class="ai-cols">
+          <div>
+            <div class="ai-col__t">수익 극대화 전략</div>
+            ${(aiData.strategies||[]).map((s,i)=>`<div class="ai-action"><div class="ai-action__num">${i+1}</div><div>${esc(s)}</div></div>`).join('')}
+          </div>
+          <div>
+            <div class="ai-col__t">즉시 실행 가능한 Quick Win</div>
+            <div class="ai-idea-card">
+              <div class="ai-idea-card__t" style="color:var(--ok)">1주 내 실행</div>
+              <div class="ai-idea-card__d">${esc(aiData.quickWin||'')}</div>
+            </div>
+          </div>
+        </div>
+      </div>` : ''}
+    `;
+  });
 }
 
 /* ── SETTINGS ── */
