@@ -417,6 +417,45 @@
   .topic-card__bar{height:4px;background:var(--bg-sunken);border-radius:99px;overflow:hidden}
   .topic-card__bar span{display:block;height:100%;background:var(--accent);border-radius:99px}
   .topic-card__foot{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:11px;color:var(--ink-3)}
+
+  /* Channel Analysis & Compare */
+  .ch-hero{display:flex;gap:20px;align-items:center;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:18px;flex-wrap:wrap}
+  .ch-avatar{width:72px;height:72px;border-radius:50%;flex:none;background:linear-gradient(135deg,var(--accent),oklch(0.45 0.2 285));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0}
+  .ch-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .ch-hero__info{flex:1;min-width:200px}
+  .ch-hero__name{font-size:20px;font-weight:700;letter-spacing:-0.015em;margin:0 0 4px}
+  .ch-hero__handle{font-size:12.5px;color:var(--ink-3);font-family:var(--mono)}
+  .ch-hero__desc{font-size:12.5px;color:var(--ink-3);margin-top:8px;line-height:1.5;max-width:560px}
+  .ch-hero__badges{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .ch-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+  .ch-stat{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px}
+  .ch-stat__l{font-size:11.5px;color:var(--ink-3);margin-bottom:4px}
+  .ch-stat__v{font-size:20px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+  .ch-stat__s{font-size:11px;color:var(--ink-4);margin-top:2px}
+  .catbar{display:flex;flex-direction:column;gap:8px}
+  .catbar__row{display:flex;align-items:center;gap:8px}
+  .catbar__lbl{width:90px;font-size:11.5px;color:var(--ink-3);text-align:right;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .catbar__track{flex:1;height:8px;background:var(--bg-sunken);border-radius:99px;overflow:hidden}
+  .catbar__fill{height:100%;border-radius:99px;background:var(--accent)}
+  .catbar__pct{width:36px;font-size:11px;color:var(--ink-4);font-variant-numeric:tabular-nums;text-align:right}
+  .cmp-wrap{overflow-x:auto}
+  .cmp-table{width:100%;border-collapse:collapse;min-width:500px}
+  .cmp-table th{font-size:11.5px;font-weight:650;color:var(--ink-3);padding:10px 14px;border-bottom:2px solid var(--line);white-space:nowrap;text-align:center}
+  .cmp-table th:first-child{text-align:left;width:140px}
+  .cmp-table td{padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;text-align:center}
+  .cmp-table td:first-child{text-align:left;color:var(--ink-3);font-size:12px;font-weight:600}
+  .cmp-table tr:last-child td{border-bottom:0}
+  .cmp-best{font-weight:700;color:oklch(0.45 0.13 155)}
+  .cmp-ch-hd{display:flex;align-items:center;gap:8px;padding:8px 0;text-align:left}
+  .cmp-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;overflow:hidden;flex:none}
+  .cmp-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .cmp-ch-name{font-size:12.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ch-input-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .ch-input-idx{font-size:12px;color:var(--ink-4);font-weight:600;width:20px;flex:none;text-align:center}
+  .ch-remove-btn{background:var(--bg-sunken);border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--ink-4);padding:0 8px;height:40px;font-size:18px;line-height:1;transition:background .1s,color .1s}
+  .ch-remove-btn:hover{background:var(--danger-soft);color:var(--danger);border-color:transparent}
+  .cmp-score-bar{height:6px;background:var(--bg-sunken);border-radius:99px;overflow:hidden;margin-top:4px}
+  .cmp-score-bar span{display:block;height:100%;border-radius:99px}
 </style>
 </head>
 <body>
@@ -457,6 +496,14 @@
       <div class="nav__item" data-view="algorithm">
         <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
         <span>알고리즘 인사이트</span>
+      </div>
+      <div class="nav__item" data-view="channel">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M18 14l2 2 4-4" style="display:none"/></svg>
+        <span>채널 분석</span>
+      </div>
+      <div class="nav__item" data-view="compare">
+        <svg class="nav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/><path d="M21 15v4a2 2 0 0 1-2 2h-4"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="12" y1="9" x2="12" y2="15"/></svg>
+        <span>채널 비교</span>
       </div>
 
       <div class="sb__group">기록</div>
@@ -801,6 +848,87 @@ const API = (() => {
     async relatedVideos(keyword, n){ await wait(120); return Gen.relatedVideos(keyword, n||10); },
     async success(region){ await wait(140); return Gen.success(region); },
     async algorithm(){ await wait(120); return Gen.algorithm(); },
+
+    async channelInfo(urlOrHandle){
+      const cfg = SettingsCfg.load();
+      const parsed = parseChannelId(urlOrHandle);
+      if (!parsed) return Gen.channelInfo(urlOrHandle);
+
+      if (cfg.useReal && cfg.youtubeApiKey){
+        try {
+          const cacheKey = 'ch:' + parsed.value;
+          return await cacheFetch(cacheKey, async () => {
+            const param = parsed.type === 'id'
+              ? `id=${encodeURIComponent(parsed.value)}`
+              : parsed.type === 'handle'
+              ? `forHandle=${encodeURIComponent(parsed.value)}`
+              : `forUsername=${encodeURIComponent(parsed.value)}`;
+            const json = await ytFetch(
+              `channels?part=snippet,statistics,contentDetails&${param}`,
+              cfg.youtubeApiKey
+            );
+            const ch = (json.items||[])[0];
+            if (!ch) throw new Error('채널을 찾을 수 없습니다');
+
+            const sn = ch.snippet || {};
+            const st = ch.statistics || {};
+            const subs       = +(st.subscriberCount||0);
+            const totalViews = +(st.viewCount||0);
+            const videoCount = +(st.videoCount||0);
+
+            const uploadsId = ch.contentDetails?.relatedPlaylists?.uploads;
+            let videos = [], uploadDates = [];
+            if (uploadsId){
+              const plJson = await ytFetch(
+                `playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploadsId)}&maxResults=30`,
+                cfg.youtubeApiKey
+              );
+              const items = plJson.items || [];
+              uploadDates = items.map(i => new Date(i.snippet.publishedAt).getTime()).filter(Boolean);
+              const vidIds = items.map(i => i.contentDetails?.videoId).filter(Boolean).slice(0,20);
+              if (vidIds.length){
+                const vJson = await ytFetch(
+                  `videos?part=snippet,statistics,contentDetails&id=${vidIds.join(',')}`,
+                  cfg.youtubeApiKey
+                );
+                videos = (vJson.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+              }
+            }
+
+            let uploadFreqDays = null;
+            if (uploadDates.length >= 2){
+              uploadDates.sort((a,b)=>b-a);
+              const diffs = [];
+              for (let i=0; i<Math.min(uploadDates.length-1,15); i++)
+                diffs.push((uploadDates[i]-uploadDates[i+1])/(86_400_000));
+              uploadFreqDays = +(diffs.reduce((s,d)=>s+d,0)/diffs.length).toFixed(1);
+            }
+
+            const catCount = {};
+            videos.forEach(v => { catCount[v.category.name] = (catCount[v.category.name]||0)+1; });
+            const cats = Object.entries(catCount).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,cnt])=>[name, Math.round(cnt/videos.length*100)]);
+
+            const thumbs = sn.thumbnails||{};
+            const thumbUrl = (thumbs.medium||thumbs.high||thumbs.default||{}).url||null;
+
+            return {
+              id: ch.id,
+              handle: sn.customUrl || parsed.value,
+              name: sn.title||'알 수 없음',
+              description: (sn.description||'').slice(0,200),
+              thumbUrl, thumbColors: null,
+              subs, totalViews, videoCount,
+              uploadFreqDays,
+              cats: cats.length ? cats : [['알 수 없음',100]],
+              videos: videos.slice(0,10),
+              isReal: true
+            };
+          });
+        } catch(e){ toast('채널 API 오류: '+e.message); }
+      }
+      await wait(100);
+      return Gen.channelInfo(urlOrHandle);
+    },
 
     history: {
       list(){ return Store.read('history', []); },
@@ -1165,9 +1293,45 @@ const Gen = (() => {
     return { factors, principles };
   }
 
+  function channelInfo(urlOrHandle){
+    const seed = hash('ch:'+urlOrHandle);
+    const r = rng(seed);
+    const names = ['테크맵 스튜디오','크리에이터 X','인사이트 TV','미래 채널','트렌드 연구소','데일리 리뷰','스마트 라이프','글로벌 K','코드와 함께','심야 토크룸','한 끼 식탁','여행 기록사'];
+    const chName = names[seed % names.length];
+    const subs       = Math.round(10_000 + r()*4_000_000);
+    const videoCount = Math.round(50 + r()*600);
+    const totalViews = Math.round(subs * (100 + r()*800));
+    const uploadFreqDays = +(1.5 + r()*14).toFixed(1);
+    const topCatObj = pick(r, CATEGORIES);
+    const cats = [
+      [topCatObj.name, Math.round(40+r()*30)],
+      [pick(r,CATEGORIES).name, Math.round(15+r()*15)],
+      [pick(r,CATEGORIES).name, Math.round(5+r()*10)],
+    ];
+    const videos = [];
+    for (let i=0;i<10;i++){
+      const v = makeVideo('ch:'+urlOrHandle+':'+i, {category:topCatObj.id, boost:1+(10-i)/10*0.5});
+      v.channel = chName;
+      videos.push({...v, rank:i+1});
+    }
+    const tc = thumbColors('ch:'+urlOrHandle);
+    return {
+      id: 'UC'+seed.toString(16).padStart(22,'0').slice(0,22),
+      handle: '@ch-demo-'+seed.toString(36).slice(0,6),
+      name: chName,
+      description: `${chName}는 ${topCatObj.name} 분야를 중심으로 다양한 콘텐츠를 제작합니다. (가상 데이터)`,
+      thumbUrl: null, thumbColors: tc,
+      subs, totalViews, videoCount,
+      uploadFreqDays,
+      cats,
+      videos,
+      isReal: false
+    };
+  }
+
   return { CATEGORIES, COUNTRIES, hash, rng, thumbColors, viewStr, durStr,
            summary, trending, trendingByCategory, countries, analysis,
-           relatedVideos, success, algorithm };
+           relatedVideos, success, algorithm, channelInfo };
 })();
 
 /* ───────── App / Router ───────── */
@@ -1231,6 +1395,8 @@ function render(){
     case 'algorithm':     return renderAlgorithm();
     case 'history':       return renderHistory();
     case 'settings':      return renderSettings();
+    case 'channel':       return renderChannel();
+    case 'compare':       return renderCompare();
     default:              return renderHome();
   }
 }
@@ -2062,6 +2228,360 @@ function renderHistory(){
   if (gh) gh.addEventListener('click', () => App.go('home'));
 }
 
+/* ── CHANNEL ANALYSIS ── */
+function renderChannel(){
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>채널 분석</h1><p>YouTube 채널 URL 또는 @핸들을 입력하면 구독자 수, 업로드 패턴, 카테고리 분포, 인기 영상을 분석합니다.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:24px">
+      <div class="card__hd"><h3>채널 URL 입력</h3><span class="muted">예: https://www.youtube.com/@채널명 또는 @채널명</span></div>
+      <form id="chForm" style="display:flex;gap:8px;max-width:700px">
+        <input id="chInput" class="field__input" style="flex:1;height:44px;font-size:13.5px;font-family:var(--font)"
+               placeholder="https://www.youtube.com/@채널명  또는  @채널핸들" autocomplete="off"/>
+        <button type="submit" class="btn btn--primary" style="height:44px;padding:0 20px;white-space:nowrap">분석 시작</button>
+      </form>
+    </div>
+    <div id="chResult"></div>`;
+
+  /* 채널 비교에서 "상세 분석" 클릭으로 넘어온 경우 자동 로드 */
+  if (App._channelDetailData){
+    const preloaded = App._channelDetailData;
+    App._channelDetailData = null;
+    const el = document.getElementById('chResult');
+    el.innerHTML = renderChannelDetail(preloaded);
+    el.querySelectorAll('.vid-card').forEach(card => {
+      card.addEventListener('click', () => { const kw=card.dataset.kw; if(kw) App.analyzeAndShow(kw); });
+    });
+  }
+
+  document.getElementById('chForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const url = document.getElementById('chInput').value.trim();
+    if (!url) return;
+    const el = document.getElementById('chResult');
+    el.innerHTML = '<div class="skeleton" style="height:300px;border-radius:16px"></div>';
+    const ch = await API.channelInfo(url);
+    if (!ch){ el.innerHTML = '<div class="empty"><h4>채널을 찾을 수 없습니다</h4><p>URL 형식을 확인해주세요.</p></div>'; return; }
+    el.innerHTML = renderChannelDetail(ch);
+    el.querySelectorAll('.vid-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const kw = card.dataset.kw;
+        if (kw) App.analyzeAndShow(kw);
+      });
+    });
+  });
+}
+
+function renderChannelDetail(ch){
+  const avgViews = ch.videoCount > 0 ? Math.round(ch.totalViews / ch.videoCount) : 0;
+  const freqLabel = ch.uploadFreqDays == null ? '알 수 없음'
+    : ch.uploadFreqDays <= 1 ? '매일'
+    : ch.uploadFreqDays <= 3 ? `${ch.uploadFreqDays.toFixed(0)}일마다`
+    : ch.uploadFreqDays <= 7 ? '주 1회 이상'
+    : `${Math.round(ch.uploadFreqDays)}일마다`;
+
+  const avEl = ch.thumbUrl
+    ? `<img src="${escAttr(ch.thumbUrl)}" alt="${escAttr(ch.name)}" loading="lazy"/>`
+    : `<span>${esc(ch.name.slice(0,2))}</span>`;
+
+  const catTotal = ch.cats.reduce((s,[,v])=>s+v, 0) || 1;
+
+  return `
+    <div class="ch-hero">
+      <div class="ch-avatar">${avEl}</div>
+      <div class="ch-hero__info">
+        <div class="ch-hero__name">${esc(ch.name)}</div>
+        <div class="ch-hero__handle">${esc(ch.handle)}</div>
+        ${ch.description ? `<div class="ch-hero__desc">${esc(ch.description.slice(0,180))}${ch.description.length>180?'…':''}</div>` : ''}
+        <div class="ch-hero__badges">
+          ${ch.isReal ? '<span class="chip chip--ok" style="font-size:10.5px">실제 데이터</span>' : '<span class="chip" style="font-size:10.5px">추정 데이터</span>'}
+          ${ch.cats[0] ? `<span class="chip chip--accent">${esc(ch.cats[0][0])}</span>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="ch-stats">
+      <div class="ch-stat">
+        <div class="ch-stat__l">구독자</div>
+        <div class="ch-stat__v">${Gen.viewStr(ch.subs)}</div>
+        <div class="ch-stat__s">${ch.isReal?'YouTube API':'추정'}</div>
+      </div>
+      <div class="ch-stat">
+        <div class="ch-stat__l">총 조회수</div>
+        <div class="ch-stat__v">${Gen.viewStr(ch.totalViews)}</div>
+        <div class="ch-stat__s">누적</div>
+      </div>
+      <div class="ch-stat">
+        <div class="ch-stat__l">영상 수</div>
+        <div class="ch-stat__v">${ch.videoCount.toLocaleString()}</div>
+        <div class="ch-stat__s">공개 영상</div>
+      </div>
+      <div class="ch-stat">
+        <div class="ch-stat__l">영상당 평균 조회</div>
+        <div class="ch-stat__v">${Gen.viewStr(avgViews)}</div>
+        <div class="ch-stat__s">추정</div>
+      </div>
+      <div class="ch-stat">
+        <div class="ch-stat__l">업로드 주기</div>
+        <div class="ch-stat__v" style="font-size:16px">${freqLabel}</div>
+        <div class="ch-stat__s">${ch.uploadFreqDays!=null&&ch.isReal?'최근 30개 분석':'추정'}</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card__hd"><h3>카테고리 분포</h3><span class="muted">최근 영상 기준</span></div>
+        <div class="catbar">
+          ${ch.cats.map(([name,pct])=>`
+            <div class="catbar__row">
+              <div class="catbar__lbl">${esc(name)}</div>
+              <div class="catbar__track"><div class="catbar__fill" style="width:${Math.round(pct/catTotal*100)}%"></div></div>
+              <div class="catbar__pct">${Math.round(pct/catTotal*100)}%</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card__hd"><h3>채널 인사이트</h3><span class="muted">가능성 기반 추정</span></div>
+        <div class="insight-list">
+          <div class="insight"><div class="insight__num">1</div><div>
+            <div class="insight__t">업로드 일관성</div>
+            <div class="insight__d">${ch.uploadFreqDays!=null ? `평균 ${freqLabel} 업로드 패턴입니다. ${ch.uploadFreqDays<=7?'꾸준한 업로드는 알고리즘 신선도 점수에 긍정적 영향을 줄 가능성이 있습니다.':'업로드 간격이 길수록 구독자 유지율 관리가 중요합니다.'}` : '업로드 주기 데이터를 분석 중입니다.'}</div>
+          </div></div>
+          <div class="insight"><div class="insight__num">2</div><div>
+            <div class="insight__t">구독자 대비 조회 효율</div>
+            <div class="insight__d">${avgViews > ch.subs*0.1 ? '영상당 평균 조회수가 구독자 수 대비 높은 편으로 콘텐츠 흡입력이 강할 가능성이 있습니다.' : avgViews > ch.subs*0.05 ? '구독자 대비 평균 조회는 업계 평균 수준으로 보입니다.' : '구독자 대비 조회 효율이 낮을 수 있어 제목·썸네일 최적화 여지가 있습니다.'}</div>
+          </div></div>
+          <div class="insight"><div class="insight__num">3</div><div>
+            <div class="insight__t">주력 카테고리</div>
+            <div class="insight__d">${ch.cats[0] ? `'${ch.cats[0][0]}' 카테고리 비중이 가장 높습니다. 해당 분야에서 주제 권위를 쌓으면 관련 영상 추천 흐름에 포함될 가능성이 있습니다.` : '카테고리 분포를 분석 중입니다.'}</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    ${ch.videos.length ? `
+    <div class="card">
+      <div class="card__hd"><h3>최근 인기 영상 TOP ${ch.videos.length}</h3><span class="muted">업로드 순 · 클릭하면 키워드 분석</span></div>
+      <div class="vid-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+        ${ch.videos.map((v,i)=>videoCard(v,{rank:i+1})).join('')}
+      </div>
+    </div>` : ''}
+  `;
+}
+
+/* ── CHANNEL COMPARE ── */
+function renderCompare(){
+  const stored = App._compareChannels || [];
+  const channels = stored.length ? stored : ['','',''];
+  while (channels.length < 2) channels.push('');
+  while (channels.length > 3) channels.pop();
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div><h1>채널 비교</h1><p>2~3개 채널을 나란히 비교합니다. URL 또는 @핸들을 입력하세요.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:24px">
+      <div class="card__hd"><h3>채널 입력</h3><span class="muted">최소 2개, 최대 3개</span></div>
+      <form id="cmpForm">
+        <div id="cmpInputs">
+          ${channels.map((v,i)=>`
+            <div class="ch-input-row" id="cmpRow${i}">
+              <div class="ch-input-idx">${i+1}</div>
+              <input class="field__input cmp-ch-input" style="height:40px;flex:1" data-idx="${i}"
+                     placeholder="https://www.youtube.com/@채널명" value="${escAttr(v)}" autocomplete="off"/>
+              ${i>=2 ? `<button type="button" class="ch-remove-btn" data-remove="${i}">✕</button>` : '<div style="width:40px"></div>'}
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button type="submit" class="btn btn--primary" style="height:40px;padding:0 20px">비교 시작</button>
+          <button type="button" id="addChBtn" class="btn" style="height:40px;padding:0 14px">+ 채널 추가</button>
+        </div>
+      </form>
+    </div>
+    <div id="cmpResult"></div>`;
+
+  function getInputValues(){
+    return [...document.querySelectorAll('.cmp-ch-input')].map(i=>i.value.trim());
+  }
+
+  document.getElementById('addChBtn').addEventListener('click', () => {
+    const container = document.getElementById('cmpInputs');
+    const idx = container.children.length;
+    if (idx >= 3){ toast('최대 3개까지 비교할 수 있습니다'); return; }
+    const row = document.createElement('div');
+    row.className = 'ch-input-row'; row.id = 'cmpRow'+idx;
+    row.innerHTML = `
+      <div class="ch-input-idx">${idx+1}</div>
+      <input class="field__input cmp-ch-input" style="height:40px;flex:1" data-idx="${idx}"
+             placeholder="https://www.youtube.com/@채널명" autocomplete="off"/>
+      <button type="button" class="ch-remove-btn" data-remove="${idx}">✕</button>`;
+    container.appendChild(row);
+    if (idx >= 2) document.getElementById('addChBtn').disabled = true;
+  });
+
+  document.getElementById('cmpInputs').addEventListener('click', e => {
+    const btn = e.target.closest('.ch-remove-btn'); if (!btn) return;
+    btn.closest('.ch-input-row').remove();
+    document.getElementById('addChBtn').disabled = false;
+    [...document.querySelectorAll('.cmp-ch-input')].forEach((el,i)=>{ el.closest('.ch-input-row').querySelector('.ch-input-idx').textContent=i+1; el.dataset.idx=i; });
+  });
+
+  document.getElementById('cmpForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const urls = getInputValues().filter(Boolean);
+    if (urls.length < 2){ toast('최소 2개 채널을 입력하세요'); return; }
+    App._compareChannels = getInputValues();
+    const el = document.getElementById('cmpResult');
+    el.innerHTML = '<div class="skeleton" style="height:400px;border-radius:16px"></div>';
+    const results = await Promise.allSettled(urls.map(u => API.channelInfo(u)));
+    const channels = results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
+    if (channels.length < 2){ el.innerHTML = '<div class="empty"><h4>채널 데이터를 불러오지 못했습니다</h4><p>URL 형식 또는 API 설정을 확인해주세요.</p></div>'; return; }
+    el.innerHTML = renderCompareDetail(channels);
+    el.querySelectorAll('[data-ch-detail]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = +btn.dataset.chDetail;
+        App._channelDetailData = channels[idx];
+        App.go('channel');
+        setTimeout(() => {
+          const el2 = document.getElementById('chResult');
+          if (el2 && channels[idx]) el2.innerHTML = renderChannelDetail(channels[idx]);
+        }, 50);
+      });
+    });
+  });
+}
+
+function renderCompareDetail(channels){
+  const N = channels.length;
+  const avgViews = ch => ch.videoCount > 0 ? Math.round(ch.totalViews / ch.videoCount) : 0;
+  const freqLabel = d => d==null?'—':d<=1?'매일':d<=3?`${d.toFixed(0)}일마다`:d<=7?'주1회':d<=14?`${Math.round(d)}일마다`:'저빈도';
+
+  /* find best value for each metric */
+  const best = (arr, higher=true) => {
+    const vals = arr.map(v=>v??-Infinity);
+    const m = higher ? Math.max(...vals) : Math.min(...vals.filter(v=>v>-Infinity));
+    return vals.findIndex(v=>v===m);
+  };
+
+  const subsArr  = channels.map(c=>c.subs);
+  const avgArr   = channels.map(c=>avgViews(c));
+  const freqArr  = channels.map(c=>c.uploadFreqDays);
+  const cntArr   = channels.map(c=>c.videoCount);
+
+  const subsB  = best(subsArr);
+  const avgB   = best(avgArr);
+  const freqB  = best(freqArr, false); // lower = more frequent = better
+  const cntB   = best(cntArr);
+
+  const hues = [262, 155, 75];
+  const colorsData = channels.map((_,i)=>`oklch(0.55 0.14 ${hues[i]||200})`);
+
+  const thCol = channels.map((ch,i)=>`
+    <th>
+      <div class="cmp-ch-hd">
+        <div class="cmp-av" style="background:${colorsData[i]}">
+          ${ch.thumbUrl ? `<img src="${escAttr(ch.thumbUrl)}" alt=""/>` : esc(ch.name.slice(0,2))}
+        </div>
+        <div>
+          <div class="cmp-ch-name">${esc(ch.name)}</div>
+          <div style="font-size:10.5px;color:var(--ink-4);font-family:var(--mono)">${esc(ch.handle)}</div>
+        </div>
+      </div>
+    </th>`).join('');
+
+  const row = (label, vals, bestIdx, fmt) => `
+    <tr>
+      <td>${label}</td>
+      ${vals.map((v,i)=>`<td class="${i===bestIdx&&v!=null?'cmp-best':''}">${fmt(v,i)}</td>`).join('')}
+    </tr>`;
+
+  const scoreRow = (label, vals, bestIdx) => `
+    <tr>
+      <td>${label}</td>
+      ${vals.map((v,i)=>`<td>
+        <div class="${i===bestIdx?'cmp-best':''}" style="font-weight:${i===bestIdx?700:400}">${v??'—'}</div>
+        ${v!=null?`<div class="cmp-score-bar"><span style="width:${v}%;background:${colorsData[i]}"></span></div>`:''}
+      </td>`).join('')}
+    </tr>`;
+
+  /* derived scores (seed-based consistency) */
+  const scores = channels.map(ch => {
+    const r = Gen.rng(Gen.hash('cmp-score:'+ch.id));
+    return {
+      content: Math.round(45 + r()*50),
+      growth:  Math.round(35 + r()*55),
+      engage:  Math.round(40 + r()*50),
+    };
+  });
+  const contentB = best(scores.map(s=>s.content));
+  const growthB  = best(scores.map(s=>s.growth));
+  const engageB  = best(scores.map(s=>s.engage));
+
+  /* top category per channel */
+  const topCatRow = `
+    <tr>
+      <td>주력 카테고리</td>
+      ${channels.map(ch=>`<td>${esc(ch.cats[0]?.[0]||'—')}</td>`).join('')}
+    </tr>`;
+
+  /* real/mock badge */
+  const dataBadgeRow = `
+    <tr>
+      <td>데이터 출처</td>
+      ${channels.map(ch=>`<td>${ch.isReal?'<span class="chip chip--ok" style="font-size:10px">실제</span>':'<span class="chip" style="font-size:10px">추정</span>'}</td>`).join('')}
+    </tr>`;
+
+  return `
+    <div class="card" style="margin-bottom:18px">
+      <div class="card__hd"><h3>채널 비교표</h3><span class="muted">수치 기준 가장 높은 항목 강조</span></div>
+      <div class="cmp-wrap">
+        <table class="cmp-table">
+          <thead><tr><th>항목</th>${thCol}</tr></thead>
+          <tbody>
+            ${row('구독자', subsArr, subsB, v => v!=null ? Gen.viewStr(v) : '—')}
+            ${row('총 조회수', channels.map(c=>c.totalViews), best(channels.map(c=>c.totalViews)), v => v!=null ? Gen.viewStr(v) : '—')}
+            ${row('영상당 평균 조회', avgArr, avgB, v => v!=null ? Gen.viewStr(v) : '—')}
+            ${row('영상 수', cntArr, cntB, v => v!=null ? v.toLocaleString() : '—')}
+            ${row('업로드 주기', freqArr, freqB, v => freqLabel(v))}
+            ${topCatRow}
+            ${scoreRow('콘텐츠 점수 (추정)', scores.map(s=>s.content), contentB)}
+            ${scoreRow('성장 가능성 (추정)', scores.map(s=>s.growth), growthB)}
+            ${scoreRow('참여도 점수 (추정)', scores.map(s=>s.engage), engageB)}
+            ${dataBadgeRow}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-${Math.min(N,3)}" style="margin-bottom:18px; gap:16px; ${N===3?'grid-template-columns:repeat(3,1fr)':''}">
+      ${channels.map((ch,i)=>`
+        <div class="card">
+          <div class="card__hd">
+            <div class="cmp-av" style="background:${colorsData[i]}">
+              ${ch.thumbUrl?`<img src="${escAttr(ch.thumbUrl)}" alt=""/>`:esc(ch.name.slice(0,2))}
+            </div>
+            <h3 style="font-size:13px">${esc(ch.name)}</h3>
+          </div>
+          <div class="catbar">
+            ${ch.cats.slice(0,4).map(([name,pct])=>{
+              const total = ch.cats.reduce((s,[,v])=>s+v,0)||1;
+              const w = Math.round(pct/total*100);
+              return `<div class="catbar__row">
+                <div class="catbar__lbl">${esc(name)}</div>
+                <div class="catbar__track"><div class="catbar__fill" style="width:${w}%;background:${colorsData[i]}"></div></div>
+                <div class="catbar__pct">${w}%</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="margin-top:14px">
+            <button class="btn" style="width:100%;height:36px" data-ch-detail="${i}">채널 상세 분석</button>
+          </div>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
 /* ── SETTINGS ── */
 function renderSettings(){
   const cfg = SettingsCfg.load();
@@ -2424,6 +2944,18 @@ function parseYtId(url){
     if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
     return u.searchParams.get('v') || null;
   } catch { return null; }
+}
+
+function parseChannelId(urlOrHandle){
+  const s = (urlOrHandle||'').trim();
+  if (!s) return null;
+  let m;
+  if ((m = s.match(/youtube\.com\/channel\/(UC[\w-]+)/i))) return { type:'id', value:m[1] };
+  if ((m = s.match(/youtube\.com\/@([\w.-]+)/i))) return { type:'handle', value:'@'+m[1] };
+  if ((m = s.match(/youtube\.com\/(?:c\/|user\/)([\w.-]+)/i))) return { type:'custom', value:m[1] };
+  if ((m = s.match(/^@([\w.-]+)$/))) return { type:'handle', value:s };
+  if ((m = s.match(/^(UC[\w-]{20,})$/))) return { type:'id', value:s };
+  return null;
 }
 
 function genUrlSuccessReport(url, rv=null){
