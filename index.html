@@ -2375,10 +2375,11 @@ function bootstrap(){
   // Modal init
   VidModal.init();
 
-  // Global action button handler (delegation)
+  // Global action button handler — capture phase so stopPropagation on .vid-actions doesn't block it
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-va]');
     if (!btn) return;
+    e.stopPropagation(); // prevent [data-kw] bubble handlers from also firing
     const va = btn.dataset.va;
     if (va === 'copyVid' || va === 'copyCh'){
       const url = btn.dataset.url;
@@ -2390,7 +2391,7 @@ function bootstrap(){
     const v = VidRegistry[btn.dataset.key];
     if (!v) return;
     openVidModal(va, v);
-  });
+  }, { capture: true });
 
   // ESC key closes modal
   document.addEventListener('keydown', e => { if (e.key==='Escape') VidModal.close(); });
