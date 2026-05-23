@@ -151,6 +151,7 @@
   /* Thumb */
   .thumb{position:relative; width:100%; aspect-ratio: 16/9; border-radius:10px; overflow:hidden; background: linear-gradient(135deg, var(--g1, oklch(0.7 0.12 260)), var(--g2, oklch(0.55 0.16 220)))}
   .thumb::before{content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 2px, transparent 2px 14px)}
+  .thumb--real::before{display:none}
   .thumb__play{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); display:flex; align-items:center; justify-content:center; color:#fff}
   .thumb__dur{position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.7); color:#fff; font-size:10.5px; font-variant-numeric:tabular-nums; font-weight:600; padding:2px 6px; border-radius:4px}
   .thumb__rank{position:absolute; top:8px; left:8px; background:rgba(0,0,0,.7); color:#fff; font-size:10.5px; font-weight:700; font-variant-numeric:tabular-nums; padding:2px 7px; border-radius:99px}
@@ -574,50 +575,202 @@ const SettingsCfg = {
 };
 
 /* ───────── API LAYER ─────────
-   메서드 시그니처를 실제 서비스와 동일하게 유지.
-   useReal=true + key 존재 시 실제 호출로 분기 (TODO: fetch 구현 위치 표시).
+   useReal=true + youtubeApiKey 설정 시 YouTube Data API v3 실제 호출.
+   오류 발생 시 toast 알림 후 mock 데이터로 자동 폴백.
 */
 const API = (() => {
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
 
-  // === 실제 API 호출 placeholder ===
-  // 향후 useReal=true + youtubeApiKey 설정 시 이 함수를 fetch 구현으로 교체.
-  // 예: const url = `https://www.googleapis.com/youtube/v3/videos?...&key=${cfg.youtubeApiKey}`
-  //     const r = await fetch(url); const json = await r.json(); ...
-  async function _fetchYouTubeTrending(opts){
-    // placeholder — 실제 구현 시 위 URL 사용
-    return null;
+  /* 5분 TTL 인메모리 캐시 */
+  const _cache = new Map();
+  function cacheFetch(key, fn, ttl=300_000){
+    const hit = _cache.get(key);
+    if (hit && Date.now() - hit.ts < ttl) return Promise.resolve(hit.val);
+    return fn().then(val => { _cache.set(key, { val, ts:Date.now() }); return val; });
   }
-  async function _fetchAiInsight(prompt, cfg){
-    // placeholder — provider 분기 후 fetch
-    return null;
+
+  /* ISO 8601 duration → seconds */
+  function parseDur(iso){
+    if (!iso) return 0;
+    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!m) return 0;
+    return (+(m[1]||0))*3600 + (+(m[2]||0))*60 + (+(m[3]||0));
+  }
+
+  /* published ISO string → hours ago */
+  function hoursAgo(dt){ return Math.max(1, Math.round((Date.now()-new Date(dt).getTime())/3_600_000)); }
+
+  /* YouTube categoryId → app cat id */
+  const YT_TO_APP = {
+    '1':'enter','2':'auto','10':'music','15':'pet','17':'sport',
+    '19':'travel','20':'game','22':'vlog','23':'enter','24':'enter',
+    '25':'news','26':'beauty','27':'edu','28':'tech','29':'news'
+  };
+  /* app cat id → YouTube categoryId */
+  const APP_TO_YT = {
+    music:'10',game:'20',enter:'24',news:'25',edu:'27',
+    tech:'28',sport:'17',beauty:'26',food:'22',auto:'2',
+    pet:'15',travel:'19',vlog:'22',finance:'25'
+  };
+
+  const CATS_LOOKUP = [
+    {id:'music',name:'음악'},{id:'game',name:'게임'},{id:'enter',name:'엔터테인먼트'},
+    {id:'news',name:'뉴스'},{id:'edu',name:'교육'},{id:'tech',name:'과학·기술'},
+    {id:'sport',name:'스포츠'},{id:'beauty',name:'뷰티·패션'},{id:'food',name:'푸드'},
+    {id:'auto',name:'자동차'},{id:'pet',name:'반려동물'},{id:'travel',name:'여행'},
+    {id:'vlog',name:'브이로그'},{id:'finance',name:'경제·재테크'}
+  ];
+
+  /* YouTube API item → app video object */
+  function ytItemToVideo(item, rank){
+    const s  = item.snippet         || {};
+    const st = item.statistics      || {};
+    const cd = item.contentDetails  || {};
+    const catId  = YT_TO_APP[s.categoryId] || 'enter';
+    const cat    = CATS_LOOKUP.find(c=>c.id===catId) || CATS_LOOKUP[2];
+    const views      = +(st.viewCount  || 0);
+    const likes      = +(st.likeCount  || 0);
+    const durationSec = parseDur(cd.duration);
+    const pubAgoH    = hoursAgo(s.publishedAt);
+
+    /* CTR / retention 비공개 → seed 기반 추정 */
+    const seed = Gen.hash('yt:'+item.id);
+    const r    = Gen.rng(seed);
+    const ctr       = +(2 + r()*9).toFixed(1);
+    const retention = +(28 + r()*48).toFixed(1);
+    const avd       = Math.round(durationSec * (retention/100));
+    const delta24h  = Math.round(views * (0.05 + r()*0.2));
+    const score = clamp(Math.round(ctr*4 + retention*0.7 + Math.log10(Math.max(views,1))*3 + (delta24h/Math.max(views,1))*40), 30, 99);
+
+    const thumbs = s.thumbnails || {};
+    const thumbUrl = (thumbs.maxres||thumbs.high||thumbs.medium||thumbs.default||{}).url || null;
+
+    return {
+      id: item.id, ytId: item.id,
+      title:   s.title        || '(제목 없음)',
+      channel: s.channelTitle || '알 수 없음',
+      category: cat,
+      views, likes, ctr, retention, avd, durationSec,
+      publishedAgoH: pubAgoH, delta24h, score, rank,
+      thumb: thumbUrl ? { url: thumbUrl } : Gen.thumbColors(item.id)
+    };
+  }
+
+  /* 인증된 YouTube Data API fetch */
+  async function ytFetch(path, key){
+    const sep = path.includes('?') ? '&' : '?';
+    const url = `https://www.googleapis.com/youtube/v3/${path}${sep}key=${encodeURIComponent(key)}`;
+    const res = await fetch(url);
+    if (!res.ok){
+      const txt = await res.text().catch(()=>'');
+      let msg = `HTTP ${res.status}`;
+      try { const j=JSON.parse(txt); msg=j.error?.message||msg; } catch(_){}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  async function _fetchYouTubeTrending(opts){
+    const cfg = SettingsCfg.load();
+    if (!cfg.useReal || !cfg.youtubeApiKey) return null;
+    const region = opts.region || 'KR';
+    const catId  = opts.category && opts.category!=='all' ? APP_TO_YT[opts.category] : '';
+    const cacheKey = `trend:${region}:${catId}`;
+    return cacheFetch(cacheKey, async () => {
+      const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&maxResults=50${catId?'&videoCategoryId='+catId:''}`;
+      const json = await ytFetch(params, cfg.youtubeApiKey);
+      return (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+    });
+  }
+
+  async function _fetchYouTubeTrendingByCategory(opts){
+    const cfg = SettingsCfg.load();
+    if (!cfg.useReal || !cfg.youtubeApiKey) return null;
+    const region = opts.region || 'KR';
+    const cacheKey = `trendByCat:${region}`;
+    return cacheFetch(cacheKey, async () => {
+      const cats = CATS_LOOKUP.filter(c=>APP_TO_YT[c.id]);
+      const results = await Promise.allSettled(cats.map(async c => {
+        const ytCatId = APP_TO_YT[c.id];
+        const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&videoCategoryId=${ytCatId}&maxResults=10`;
+        const json = await ytFetch(params, cfg.youtubeApiKey);
+        const vids = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+        return { category:c, videos:vids };
+      }));
+      return results.filter(r=>r.status==='fulfilled'&&r.value.videos.length).map(r=>r.value);
+    });
+  }
+
+  async function _fetchYouTubeCountries(key){
+    const codes = Gen.COUNTRIES.map(c=>c.code);
+    const cacheKey = 'countries';
+    return cacheFetch(cacheKey, async () => {
+      const results = await Promise.allSettled(codes.map(async code => {
+        const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${code}&maxResults=10`;
+        const json = await ytFetch(params, key);
+        return { code, videos:(json.items||[]).map((item,i)=>ytItemToVideo(item,i+1)) };
+      }));
+      const byCode = {};
+      results.filter(r=>r.status==='fulfilled').forEach(r=>{ byCode[r.value.code]=r.value.videos; });
+      return Gen.COUNTRIES.map(c => ({
+        ...c,
+        topVideo: byCode[c.code]?.[0] || null,
+        videos:   byCode[c.code] || [],
+        risingCount: byCode[c.code]?.length || 0,
+        hotCategory: byCode[c.code]?.[0]?.category?.name || '—',
+        thumb: Gen.thumbColors('flag:'+c.code)
+      }));
+    });
   }
 
   return {
     async summary(region){ await wait(80); return Gen.summary(region); },
+
     async trending(opts){
-      await wait(160);
       const cfg = SettingsCfg.load();
       if (cfg.useReal && cfg.youtubeApiKey){
-        const real = await _fetchYouTubeTrending(opts);
-        if (real) return real;
+        try {
+          const real = await _fetchYouTubeTrending(opts);
+          if (real && real.length) return real;
+        } catch(e){ toast('YouTube API 오류: '+e.message); }
       }
+      await wait(160);
       return Gen.trending(opts);
     },
-    async trendingByCategory(opts){ await wait(120); return Gen.trendingByCategory(opts); },
-    async countries(){ await wait(60); return Gen.countries(); },
+
+    async trendingByCategory(opts){
+      const cfg = SettingsCfg.load();
+      if (cfg.useReal && cfg.youtubeApiKey){
+        try {
+          const real = await _fetchYouTubeTrendingByCategory(opts);
+          if (real && real.length) return real;
+        } catch(e){ toast('YouTube API 오류: '+e.message); }
+      }
+      await wait(120);
+      return Gen.trendingByCategory(opts);
+    },
+
+    async countries(){
+      const cfg = SettingsCfg.load();
+      if (cfg.useReal && cfg.youtubeApiKey){
+        try {
+          const real = await _fetchYouTubeCountries(cfg.youtubeApiKey);
+          if (real && real.length) return real;
+        } catch(e){ toast('YouTube API 오류: '+e.message); }
+      }
+      await wait(60);
+      return Gen.countries();
+    },
+
     async analyze(keyword){
       await wait(420);
-      const cfg = SettingsCfg.load();
-      if (cfg.useReal && cfg.aiApiKey){
-        const real = await _fetchAiInsight(keyword, cfg);
-        if (real) return real;
-      }
       return Gen.analysis(keyword.trim());
     },
     async relatedVideos(keyword, n){ await wait(120); return Gen.relatedVideos(keyword, n||10); },
     async success(region){ await wait(140); return Gen.success(region); },
     async algorithm(){ await wait(120); return Gen.algorithm(); },
+
     history: {
       list(){ return Store.read('history', []); },
       save(item){
@@ -1053,8 +1206,12 @@ function render(){
 
 function thumb(v, opts={}){
   const dur = Gen.durStr(v.durationSec);
+  const isReal = v.thumb && v.thumb.url;
+  const bgStyle = isReal
+    ? `background-image:url('${escAttr(v.thumb.url)}');background-size:cover;background-position:center`
+    : `--g1:${v.thumb.g1}; --g2:${v.thumb.g2}`;
   return `
-    <div class="thumb" style="--g1:${v.thumb.g1}; --g2:${v.thumb.g2}">
+    <div class="thumb${isReal?' thumb--real':''}" style="${bgStyle}">
       ${opts.rank ? `<div class="thumb__rank">#${opts.rank}</div>` : ''}
       ${opts.cat !== false ? `<div class="thumb__cat">${v.category.name}</div>` : ''}
       <div class="thumb__play">
@@ -1308,7 +1465,7 @@ async function renderCountries(){
             <div class="ctry-iso" style="--g1:${c.thumb.g1}; --g2:${c.thumb.g2}">${c.code}</div>
             <div><div class="ctry-card__name">${c.name}</div><div class="ctry-card__lang">${c.lang}</div></div>
           </div>
-          <div class="ctry-top">▲ ${esc(c.topVideo.title)}</div>
+          <div class="ctry-top">▲ ${esc(c.topVideo?.title || '데이터 없음')}</div>
           <div class="ctry-stats">
             <div><b>${c.risingCount}</b><span>급상승 영상</span></div>
             <div><b>${c.hotCategory}</b><span>인기 분야</span></div>
@@ -2024,7 +2181,7 @@ function mockYtVidId(id){ return Gen.hash('ytv:'+id).toString(16).padStart(11,'0
 function vidActionBar(v, rowMode=false){
   const key = v.id || ('v_'+Gen.hash(v.title+':'+v.channel).toString(36));
   VidRegistry[key] = v;
-  const ytVid = mockYtVidId(key);
+  const ytVid = v.ytId || mockYtVidId(key);
   const chSlug = v.channel.replace(/\s+/g,'');
   const vidUrl = 'https://www.youtube.com/watch?v=' + ytVid;
   const chUrl  = 'https://www.youtube.com/@' + chSlug;
