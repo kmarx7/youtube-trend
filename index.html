@@ -1077,6 +1077,22 @@ const API = (() => {
       );
     },
 
+    async aiSuccessInsights(data, regionName){
+      const peakLen = data.lenBins.indexOf(Math.max(...data.lenBins));
+      const peakDur = data.durBins.indexOf(Math.max(...data.durBins));
+      const topHooks = data.hooks.sort((a,b)=>b.share-a.share).slice(0,3).map(h=>`${h.name}(${h.share}%)`).join(', ');
+      const topThumbs = data.thumbs.sort((a,b)=>b.share-a.share).slice(0,3).map(t=>`${t.name}(${t.share}%)`).join(', ');
+      // Find peak upload time from heat map
+      let peakDay='', peakHour=0, peakVal=0;
+      const days=['월','화','수','목','금','토','일'];
+      data.heat.forEach((row,di)=>row.forEach((v,hi)=>{ if(v>peakVal){peakVal=v;peakDay=days[di];peakHour=hi;} }));
+      const summary = `지역: ${regionName}\n제목 길이 정점: ${15+peakLen*5}~${20+peakLen*5}자\n영상 길이 정점: ${(2.5+peakDur*2.5).toFixed(0)}~${(2.5+(peakDur+1)*2.5).toFixed(0)}분\n업로드 최고 빈도: ${peakDay}요일 ${peakHour}시\n후킹 전략 상위: ${topHooks}\n썸네일 톤 상위: ${topThumbs}`;
+      return this._ai(
+        '유튜브 성공 패턴 분석 전문가. 반드시 유효한 JSON만 출력.',
+        `다음은 ${regionName} 유튜브 성공 영상의 통계 분석 결과입니다:\n${summary}\n\n이 데이터를 바탕으로 크리에이터가 실제로 활용할 수 있는 핵심 인사이트 5가지를 한국어로 작성하세요. 단순 데이터 반복이 아닌, 데이터 간의 연관성과 실행 전략을 담아주세요.\nJSON:\n{"insights":[{"t":"인사이트 제목 (데이터 기반, 구체적)","d":"이 데이터가 크리에이터에게 의미하는 바와 실행 방향 2문장 (가능성·추정 표현 사용)"},{"t":"두 번째 인사이트","d":"설명"},{"t":"세 번째","d":"설명"},{"t":"네 번째","d":"설명"},{"t":"다섯 번째","d":"설명"}]}`
+      );
+    },
+
     async aiSuccessReport(video, url){
       const info = `제목: ${video.title}\n채널: ${video.channel}\n카테고리: ${video.category.name}\n조회수: ${Gen.viewStr(video.views)}\n좋아요: ${Gen.viewStr(video.likes||0)}\n영상 길이: ${Gen.durStr(video.durationSec)}\n게시: ${video.publishedAgoH}시간 전\nCTR 추정: ${video.ctr}%\n유지율 추정: ${video.retention}%`;
       return this._ai(
@@ -1153,14 +1169,30 @@ const API = (() => {
     async keywordNews(keyword){
       const cfg = SettingsCfg.load();
       if (!cfg.aiApiKey) return null;
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth() + 1;
+      const curYM = `${curYear}년 ${curMonth}월`;
+      const prevYM = curMonth > 1 ? `${curYear}년 ${curMonth-1}월` : `${curYear-1}년 12월`;
       try {
         const text = await openAiFetch(cfg.aiApiKey, [
           { role:'system', content:'유튜브 트렌드 뉴스 분석 AI. 반드시 유효한 JSON만 출력.' },
-          { role:'user', content:`키워드 "${keyword}"와 관련한 최신 급상승 뉴스·이슈 3~4건을 생성해주세요. 실제처럼 구체적이고 현실적인 내용으로 작성하세요.\n\nJSON:\n{"summary":"이 키워드와 관련한 최신 뉴스 동향 1~2문장 요약 (구체적으로)","items":[{"headline":"뉴스 제목 (구체적)","source":"출처 예: 한국경제 / 연합뉴스 / SBS / KBS 등","date":"2025년 5월","summary":"뉴스 내용 2~3문장 요약","relevance":"유튜브 콘텐츠 제작과의 연관성 한 문장"},{"headline":"두 번째 뉴스 제목","source":"출처","date":"2025년 5월","summary":"내용 요약","relevance":"연관성"},{"headline":"세 번째 뉴스 제목","source":"출처","date":"2025년 4월","summary":"내용 요약","relevance":"연관성"}],"contentTip":"이 뉴스들을 바탕으로 지금 당장 만들면 좋을 콘텐츠 방향 2문장"}` }
+          { role:'user', content:`현재 날짜: ${curYM}. 키워드 "${keyword}"와 관련한 최신 급상승 뉴스·이슈 3~4건을 최신 일자 순(최근 것부터)으로 생성해주세요. ${curYear}년 실제 트렌드를 반영해 구체적이고 현실적인 내용으로 작성하세요.\n\nJSON:\n{"summary":"이 키워드와 관련한 ${curYM} 최신 뉴스 동향 1~2문장 요약 (구체적으로)","items":[{"headline":"가장 최신 뉴스 제목 (구체적)","source":"출처 예: 한국경제 / 연합뉴스 / SBS / KBS 등","date":"${curYM}","summary":"뉴스 내용 2~3문장 요약","relevance":"유튜브 콘텐츠 제작과의 연관성 한 문장"},{"headline":"두 번째 최신 뉴스 제목","source":"출처","date":"${curYM}","summary":"내용 요약","relevance":"연관성"},{"headline":"세 번째 뉴스 제목","source":"출처","date":"${prevYM}","summary":"내용 요약","relevance":"연관성"}],"contentTip":"이 뉴스들을 바탕으로 지금 당장 만들면 좋을 콘텐츠 방향 2문장"}` }
         ]);
         const m = text.match(/\{[\s\S]*\}/);
         if (!m) return null;
-        return JSON.parse(m[0]);
+        const result = JSON.parse(m[0]);
+        // Sort items by date descending (most recent first)
+        if (result.items) {
+          result.items.sort((a, b) => {
+            const parseDate = s => {
+              const m = (s||'').match(/(\d{4})년\s*(\d{1,2})월/);
+              return m ? parseInt(m[1])*100 + parseInt(m[2]) : 0;
+            };
+            return parseDate(b.date) - parseDate(a.date);
+          });
+        }
+        return result;
       } catch(e){ return null; }
     },
 
@@ -2871,13 +2903,34 @@ async function renderSuccess(){
       </div>
     </div>
 
-    <div class="card">
-      <div class="card__hd"><h3>핵심 인사이트</h3><span class="muted">가능성 기반 관찰</span></div>
-      <div class="insight-list">
+    <div class="card" id="successInsightCard">
+      <div class="card__hd"><h3>핵심 인사이트</h3><span class="muted" id="successInsightMuted">가능성 기반 관찰</span></div>
+      <div id="successInsightBody" class="insight-list">
         ${data.insights.map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${esc(it.t)}</div><div class="insight__d">${esc(it.d)}</div></div></div>`).join('')}
       </div>
     </div>
   `;
+  // AI 기반 핵심 인사이트 비동기 교체
+  {
+    const cfg2 = SettingsCfg.load();
+    if (cfg2.aiApiKey){
+      const insightBody = document.getElementById('successInsightBody');
+      const insightMuted = document.getElementById('successInsightMuted');
+      if (insightBody) insightBody.innerHTML = Array.from({length:5}).map(()=>`<div class="skeleton" style="height:54px;border-radius:10px"></div>`).join('');
+      if (insightMuted) insightMuted.textContent = 'AI 분석 중…';
+      API.aiSuccessInsights(data, regionName).then(d => {
+        const body = document.getElementById('successInsightBody');
+        const muted = document.getElementById('successInsightMuted');
+        if (!body) return;
+        if (!d || !d.insights){
+          body.innerHTML = data.insights.map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${esc(it.t)}</div><div class="insight__d">${esc(it.d)}</div></div></div>`).join('');
+          return;
+        }
+        if (muted) muted.textContent = 'AI 분석 · 성공 요인 데이터 기반';
+        body.innerHTML = d.insights.map((it,i)=>`<div class="insight"><div class="insight__num">${i+1}</div><div><div class="insight__t">${esc(it.t||'')}</div><div class="insight__d">${esc(it.d||'')}</div></div></div>`).join('');
+      }).catch(()=>{});
+    }
+  }
   document.getElementById('successUrlForm').addEventListener('submit', async e=>{
     e.preventDefault();
     const url = document.getElementById('successUrlInput').value.trim();
