@@ -114,6 +114,7 @@
   .btn--sm{height:30px; padding:0 10px; font-size:12px; border-radius:7px}
   .chip{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background:var(--bg-sunken); color:var(--ink-2); border:1px solid var(--line)}
   .chip--accent{background:var(--accent-soft); color:var(--accent-ink); border-color:transparent}
+  .chip--kw:hover{background:var(--accent-soft)!important;color:var(--accent-ink)!important;border-color:var(--accent)!important}
   .chip--ok{background:var(--ok-soft); color:oklch(0.4 0.13 155); border-color:transparent}
   .chip--warn{background:var(--warn-soft); color:oklch(0.42 0.13 75); border-color:transparent}
   .chip--danger{background:var(--danger-soft); color:oklch(0.42 0.16 25); border-color:transparent}
@@ -1323,6 +1324,31 @@ const API = (() => {
         const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
         return JSON.parse(m[0]);
       } catch(e){ return null; }
+    },
+
+    /* ── 모니터링 연관 키워드 클러스터 ── */
+    async monitorKeywordCluster(keyword){
+      return this._ai(
+        '유튜브 키워드 분석 전문가. 반드시 유효한 JSON만 출력.',
+        `메인 키워드: "${keyword}"\n이 키워드와 연관성 높은 유튜브 검색 키워드 6~8개를 추천하세요.\n한국어 (JSON):\n{"keywords":["연관키워드1","연관키워드2","연관키워드3","연관키워드4","연관키워드5","연관키워드6","연관키워드7"]}`
+      );
+    },
+
+    /* ── 모니터링 최적 업로드 타이밍 ── */
+    async monitorUploadTiming(keyword){
+      return this._ai(
+        '유튜브 업로드 전략 전문가. 반드시 유효한 JSON만 출력.',
+        `키워드: "${keyword}"\n이 키워드로 유튜브 영상을 업로드하기 가장 효과적인 요일·시간대를 분석하세요.\n한국어 (JSON):\n{"bestDay":"금","bestHour":19,"altDay":"목","altHour":14,"reason":"이유 1~2문장","schedule":[{"day":"월","score":2},{"day":"화","score":2},{"day":"수","score":3},{"day":"목","score":4},{"day":"금","score":5},{"day":"토","score":3},{"day":"일","score":2}]}`
+      );
+    },
+
+    /* ── 모니터링 콘텐츠 갭 분석 ── */
+    async monitorContentGap(keyword, topVideos){
+      const titles = (topVideos||[]).slice(0,6).map((v,i)=>`${i+1}. ${v.title}`).join('\n');
+      return this._ai(
+        '유튜브 콘텐츠 전략 전문가. 반드시 유효한 JSON만 출력.',
+        `키워드: "${keyword}"\n상위 영상 제목:\n${titles||'(없음)'}\n이 키워드에서 아직 충분히 다뤄지지 않은 콘텐츠 틈새를 찾아주세요.\n한국어 (JSON):\n{"gaps":["미개척 각도 1","각도 2","각도 3"],"opportunity":"가장 큰 기회 1문장","difficulty":"낮음"}`
+      );
     },
 
     /* ── 제목 아이디어 시놉시스 ── */
@@ -3661,6 +3687,44 @@ function _monitorSparkline(points, color, uid){
   </svg>`;
 }
 
+function _monitorCompareChart(keywords, histories){
+  if (!keywords || keywords.length < 2) return '';
+  const W=480, H=108, padL=28, padR=10, padT=10, padB=28;
+  const drawW=W-padL-padR, drawH=H-padT-padB;
+  const colors=['oklch(0.52 0.14 155)','oklch(0.55 0.15 255)','oklch(0.6 0.18 25)','oklch(0.62 0.15 315)','oklch(0.6 0.12 45)'];
+  const gridLines = [25,50,75].map(v=>{
+    const y=(padT+drawH-drawH*(v/100)).toFixed(1);
+    return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>
+            <text x="${(padL-3).toFixed(1)}" y="${(parseFloat(y)+3).toFixed(1)}" font-size="8" fill="var(--ink-4)" text-anchor="end">${v}</text>`;
+  }).join('');
+  const lines = keywords.map((kw,ki)=>{
+    const pts=histories[ki]||[]; if(pts.length<2) return '';
+    const n=pts.length;
+    const xs=pts.map((_,i)=>padL+drawW*i/(n-1));
+    const ys=pts.map(p=>padT+drawH-drawH*(Math.max(0,Math.min(100,p.v))/100));
+    const d=xs.map((x,i)=>(i===0?'M':'L')+x.toFixed(1)+' '+ys[i].toFixed(1)).join(' ');
+    const color=colors[ki%colors.length];
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="${xs[xs.length-1].toFixed(1)}" cy="${ys[ys.length-1].toFixed(1)}" r="3" fill="${color}"/>`;
+  }).join('');
+  const firstPts=histories.find(h=>h&&h.length>0)||[];
+  const firstLbl=firstPts[0]?.lbl||'';
+  const lastLbl=firstPts[firstPts.length-1]?.lbl||'';
+  const legendY=H-6;
+  const legendSpacing=Math.min(100,Math.floor(W/keywords.length));
+  const legend=keywords.map((kw,ki)=>{
+    const color=colors[ki%colors.length];
+    const lx=(padL+ki*legendSpacing).toFixed(1);
+    return `<circle cx="${lx}" cy="${legendY}" r="4" fill="${color}"/>
+            <text x="${(parseFloat(lx)+8).toFixed(1)}" y="${(legendY+4).toFixed(1)}" font-size="9" fill="var(--ink-3)">${esc(kw.length>7?kw.slice(0,7)+'…':kw)}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px">
+    ${gridLines}${lines}${legend}
+    <text x="${padL}" y="${(H-padB+12).toFixed(1)}" font-size="8" fill="var(--ink-4)">${esc(firstLbl)}</text>
+    <text x="${W-padR}" y="${(H-padB+12).toFixed(1)}" font-size="8" fill="var(--ink-4)" text-anchor="end">${esc(lastLbl)}</text>
+  </svg>`;
+}
+
 async function renderMonitor(){
   const keywords = MonitorStore.load();
   main.innerHTML = `
@@ -3678,6 +3742,7 @@ async function renderMonitor(){
       ${keywords.length===0 ? `<div class="empty"><h4>등록된 키워드가 없습니다</h4><p>위에서 키워드를 추가하세요.</p></div>` :
         `<div class="card" style="margin-bottom:18px"><div class="card__hd"><h3>모니터링 현황</h3><span class="muted">12주 추세 · 가능성 점수</span></div>
          <div class="monitor-kw-list" id="monitorRows"><div class="skeleton" style="height:200px;border-radius:10px"></div></div></div>
+         ${keywords.length>1?`<div class="card" style="margin-bottom:18px"><div class="card__hd"><h3>키워드 비교 차트</h3><span class="muted">12주 가능성 점수 추세</span></div><div id="compareChartBody"><div class="skeleton" style="height:108px;border-radius:8px"></div></div></div>`:''}
          <div id="monitorReports"></div>`}
     </div>
   `;
@@ -3725,45 +3790,156 @@ async function renderMonitor(){
       renderMonitor();
     }));
 
-    // AI trend reports (one per keyword, async)
+    // Render comparison chart
+    if (keywords.length > 1){
+      const chartBody = document.getElementById('compareChartBody');
+      if (chartBody) chartBody.innerHTML = _monitorCompareChart(keywords, histories);
+    }
+
+    // AI trend reports — one card per keyword, each with 5 feature sections
     const reportsEl = document.getElementById('monitorReports');
     if (reportsEl){
-      reportsEl.innerHTML = keywords.map(kw=>`
-        <div class="card" style="margin-bottom:14px" id="mrpt_${escAttr(Gen.hash('mrpt:'+kw).toString(36))}">
+      reportsEl.innerHTML = keywords.map(kw=>{
+        const h = Gen.hash('mrpt:'+kw).toString(36);
+        return `
+        <div class="card" style="margin-bottom:14px" id="mrpt_${escAttr(h)}">
           <div class="card__hd"><h3>"${esc(kw)}" 트렌드 보고서</h3><span class="muted chip" style="font-size:10px">AI 분석</span></div>
-          <div class="skeleton" style="height:80px;border-radius:8px"></div>
-        </div>`).join('');
+          <div id="rpts_${escAttr(h)}"><div class="skeleton" style="height:80px;border-radius:8px;margin-bottom:8px"></div></div>
+          <div id="clst_${escAttr(h)}"><div class="skeleton" style="height:36px;border-radius:8px;margin-bottom:8px"></div></div>
+          <div id="tmng_${escAttr(h)}"><div class="skeleton" style="height:56px;border-radius:8px;margin-bottom:8px"></div></div>
+          <div id="cgap_${escAttr(h)}"><div class="skeleton" style="height:56px;border-radius:8px;margin-bottom:8px"></div></div>
+          <div id="mrvid_${escAttr(Gen.hash('mrvid:'+kw).toString(36))}"><div class="skeleton" style="height:160px;border-radius:8px"></div></div>
+        </div>`;
+      }).join('');
+
       keywords.forEach(async (kw) => {
-        const id = 'mrpt_'+Gen.hash('mrpt:'+kw).toString(36);
-        const vidGridId = 'mrvid_'+Gen.hash('mrvid:'+kw).toString(36);
+        const h = Gen.hash('mrpt:'+kw).toString(36);
+        const rptId   = 'rpts_'+h;
+        const clstId  = 'clst_'+h;
+        const tmngId  = 'tmng_'+h;
+        const cgapId  = 'cgap_'+h;
+        const vidId   = 'mrvid_'+Gen.hash('mrvid:'+kw).toString(36);
+
+        // Load report + videos first (needed for gap analysis)
         const [report, monVideos] = await Promise.all([
           API.monitorReport(kw),
           API.searchKeywordVideos(kw, 6)
         ]);
-        const el2 = document.getElementById(id);
-        if (!el2) return;
-        if (!report && !monVideos.length){ el2.style.display='none'; return; }
-        const statusColor = report?.status==='급상승'?'oklch(0.52 0.14 155)':report?.status==='상승세'?'oklch(0.55 0.15 255)':report?.status==='하락'?'oklch(0.6 0.18 25)':'var(--ink-4)';
-        const videoGridHtml = monVideos.length ? `
-          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;margin-bottom:10px">급상승 관련 동영상 · 클릭하면 재생</div>
-            <div id="${vidGridId}" class="vid-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
-              ${monVideos.map(v=>videoCard(v,{})).join('')}
+
+        // ─ 경쟁 강도 (computed from video views) ─
+        const avgViews = monVideos.length ? Math.round(monVideos.reduce((s,v)=>s+(v.views||0),0)/monVideos.length) : 0;
+        const compScore = Math.min(99, Math.round(Math.log10(Math.max(avgViews,1000))/Math.log10(10000000)*100));
+        const compLabel = compScore>=70?'매우 높음':compScore>=50?'높음':compScore>=30?'보통':'낮음';
+        const compColor = compScore>=70?'oklch(0.6 0.18 25)':compScore>=50?'oklch(0.6 0.17 45)':compScore>=30?'oklch(0.55 0.15 255)':'oklch(0.52 0.14 155)';
+
+        // ─ 보고서 + 경쟁 강도 렌더 ─
+        const rptEl = document.getElementById(rptId);
+        if (rptEl){
+          const statusColor = report?.status==='급상승'?'oklch(0.52 0.14 155)':report?.status==='상승세'?'oklch(0.55 0.15 255)':report?.status==='하락'?'oklch(0.6 0.18 25)':'var(--ink-4)';
+          const compBar = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--ink-4)">경쟁 강도</span>
+            <span style="font-size:11px;font-weight:700;color:${compColor}">${compLabel}</span>
+            <div style="width:60px;height:5px;background:var(--bg-sunken);border-radius:3px;overflow:hidden">
+              <div style="width:${compScore}%;height:100%;background:${compColor};border-radius:3px"></div>
             </div>
-          </div>` : '';
-        el2.querySelector('.skeleton').outerHTML = `
-          ${report ? `
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <span class="chip" style="background:${statusColor};color:#fff;font-size:11px;font-weight:700">${esc(report.status||'—')}</span>
-          </div>
-          <div style="font-size:13.5px;color:var(--ink-2);line-height:1.6;margin-bottom:10px">${esc(report.summary||'')}</div>
-          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
-            ${(report.reasons||[]).map(r=>`<div style="font-size:12.5px;color:var(--ink-3)">→ ${esc(r)}</div>`).join('')}
-          </div>
-          <div style="font-size:12.5px;background:var(--accent-soft);color:var(--accent-ink);padding:10px 12px;border-radius:8px;line-height:1.5">
-            💡 ${esc(report.recommendation||'')}
-          </div>` : ''}
-          ${videoGridHtml}`;
+          </div>`;
+          rptEl.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+              ${report?`<span class="chip" style="background:${statusColor};color:#fff;font-size:11px;font-weight:700">${esc(report.status||'—')}</span>`:''}
+              <div style="margin-left:auto">${compBar}</div>
+            </div>
+            ${report?`
+            <div style="font-size:13.5px;color:var(--ink-2);line-height:1.6;margin-bottom:10px">${esc(report.summary||'')}</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+              ${(report.reasons||[]).map(r=>`<div style="font-size:12.5px;color:var(--ink-3)">→ ${esc(r)}</div>`).join('')}
+            </div>
+            <div style="font-size:12.5px;background:var(--accent-soft);color:var(--accent-ink);padding:10px 12px;border-radius:8px;line-height:1.5">
+              💡 ${esc(report.recommendation||'')}
+            </div>`:''}`;
+        }
+
+        // ─ 급상승 동영상 그리드 ─
+        const vidEl = document.getElementById(vidId);
+        if (vidEl){
+          vidEl.innerHTML = monVideos.length ? `
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;margin-bottom:10px">급상승 관련 동영상 · 클릭하면 재생</div>
+              <div class="vid-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+                ${monVideos.map(v=>videoCard(v,{})).join('')}
+              </div>
+            </div>` : '';
+        }
+
+        // ─ AI 섹션 3개 병렬 로드 ─
+        const [cluster, timing, gap] = await Promise.all([
+          API.monitorKeywordCluster(kw),
+          API.monitorUploadTiming(kw),
+          API.monitorContentGap(kw, monVideos)
+        ]);
+
+        // 연관 키워드 클러스터
+        const clstEl = document.getElementById(clstId);
+        if (clstEl){
+          const kwList = cluster?.keywords || [];
+          if (kwList.length){
+            clstEl.innerHTML = `
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;margin-bottom:10px">연관 키워드 클러스터 · 클릭하면 분석</div>
+                <div style="display:flex;flex-wrap:wrap;gap:7px">
+                  ${kwList.map(k=>`<button class="chip chip--kw" data-kw="${escAttr(k)}" style="cursor:pointer;font-size:12px;padding:5px 13px;border-radius:999px;background:var(--bg-sunken);color:var(--ink-2);border:1px solid var(--line);font-family:var(--font);transition:background .15s,color .15s">${esc(k)}</button>`).join('')}
+                </div>
+              </div>`;
+            clstEl.querySelectorAll('[data-kw]').forEach(btn => btn.addEventListener('click', () => App.analyzeAndShow(btn.dataset.kw)));
+          } else { clstEl.innerHTML = ''; }
+        }
+
+        // 최적 업로드 타이밍
+        const tmngEl = document.getElementById(tmngId);
+        if (tmngEl){
+          if (timing){
+            const sch = timing.schedule || [];
+            const maxSch = Math.max(...sch.map(d=>d.score||0), 1);
+            tmngEl.innerHTML = `
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;margin-bottom:10px">최적 업로드 타이밍</div>
+                <div style="display:flex;align-items:flex-end;gap:6px;height:52px;margin-bottom:10px">
+                  ${sch.map(d=>{
+                    const pct=Math.round((d.score||0)/maxSch*100);
+                    const isTop=d.day===timing.bestDay, isAlt=d.day===timing.altDay;
+                    const bClr=isTop?'oklch(0.52 0.14 155)':isAlt?'oklch(0.55 0.15 255)':'var(--bg-sunken)';
+                    const brd=isTop?'oklch(0.52 0.14 155)':isAlt?'oklch(0.55 0.15 255)':'var(--line)';
+                    return `<div style="text-align:center;flex:1">
+                      <div style="height:${4+pct*0.44}px;background:${bClr};border:1px solid ${brd};border-radius:3px 3px 0 0"></div>
+                      <div style="font-size:10px;font-weight:${isTop?'750':'400'};color:${isTop?'oklch(0.52 0.14 155)':'var(--ink-4)'};margin-top:4px">${esc(d.day)}</div>
+                    </div>`;
+                  }).join('')}
+                </div>
+                <div style="font-size:12px;color:var(--ink-3);line-height:1.5">
+                  <span style="font-weight:700;color:var(--ink-2)">${esc(timing.bestDay)}요일 ${timing.bestHour}시</span> 최적 · 차선: ${esc(timing.altDay)}요일 ${timing.altHour}시<br>
+                  ${esc(timing.reason||'')}
+                </div>
+              </div>`;
+          } else { tmngEl.innerHTML = ''; }
+        }
+
+        // 콘텐츠 갭 분석
+        const cgapEl = document.getElementById(cgapId);
+        if (cgapEl){
+          if (gap){
+            const diffColor=gap.difficulty==='낮음'?'oklch(0.52 0.14 155)':gap.difficulty==='보통'?'oklch(0.55 0.15 255)':'oklch(0.6 0.18 25)';
+            cgapEl.innerHTML = `
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase">콘텐츠 갭 분석</div>
+                  <span class="chip" style="font-size:10px;background:${diffColor};color:#fff">진입 ${esc(gap.difficulty||'')}음</span>
+                </div>
+                ${(gap.gaps||[]).map(g=>`<div style="font-size:12.5px;color:var(--ink-2);padding:7px 0;border-bottom:1px solid var(--line)">↗ ${esc(g)}</div>`).join('')}
+                <div style="font-size:12.5px;background:var(--accent-soft);color:var(--accent-ink);padding:10px 12px;border-radius:8px;margin-top:10px;line-height:1.5">
+                  🎯 ${esc(gap.opportunity||'')}
+                </div>
+              </div>`;
+          } else { cgapEl.innerHTML = ''; }
+        }
       });
     }
   }
