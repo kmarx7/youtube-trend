@@ -3990,15 +3990,22 @@ async function renderOptimize(){
       const agoStr = rv?.publishedAgoH != null ? (rv.publishedAgoH < 48 ? `${rv.publishedAgoH}시간 전` : `${Math.floor(rv.publishedAgoH/24)}일 전`) : '';
       const p2 = document.getElementById('optPreview');
       if (!p2) return;
+      const _title = rv?.title || '(제목 없음)';
+      const _ch = rv?.channel || '';
+      const _searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(_title)}`;
       p2.innerHTML = `
-        <div style="margin-top:14px;display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg)">
+        <div data-ytplay="${escAttr(ytId)}" data-title="${escAttr(_title)}" data-channel="${escAttr(_ch)}" data-searchurl="${escAttr(_searchUrl)}"
+          style="margin-top:14px;display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg);cursor:pointer;transition:opacity .15s" title="클릭하면 재생">
           <div style="position:relative;flex:none">
             <img src="${escAttr(thumbUrl)}" style="width:120px;height:68px;object-fit:cover;border-radius:8px;display:block" loading="lazy" onerror="this.style.display='none'"/>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);border-radius:8px;pointer-events:none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+            </div>
             ${dur?`<span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.75);color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px">${esc(dur)}</span>`:''}
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:650;color:var(--ink);line-height:1.45;margin-bottom:5px">${esc(rv?.title || '(제목 없음)')}</div>
-            <div style="font-size:12px;color:var(--ink-3);margin-bottom:8px">${esc(rv?.channel || '')}</div>
+            <div style="font-size:14px;font-weight:650;color:var(--ink);line-height:1.45;margin-bottom:5px">${esc(_title)}</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-bottom:8px">${esc(_ch)}</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               ${rv?.views ? `<span style="font-size:12px;color:var(--ink-4)">조회 ${Gen.viewStr(rv.views)}</span>` : ''}
               ${agoStr ? `<span style="font-size:12px;color:var(--ink-4)">· ${esc(agoStr)}</span>` : ''}
@@ -4689,9 +4696,16 @@ function genUrlAlgoReport(url, rv=null){
 }
 
 function renderUrlSuccessReport(d, url){
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(d.title||url)}`;
   return `<div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
-    <div style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink);display:flex;align-items:flex-start;gap:10px">
-      ${d.thumbUrl?`<img src="${escAttr(d.thumbUrl)}" style="width:80px;height:45px;object-fit:cover;border-radius:5px;flex:none" loading="lazy"/>`:''}
+    <div data-ytplay="${escAttr(d.ytId||'')}" data-title="${escAttr(d.title||url)}" data-channel="${escAttr(d.channel||'')}" data-searchurl="${escAttr(searchUrl)}"
+      style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:opacity .15s" title="클릭하면 재생">
+      <div style="position:relative;flex:none">
+        ${d.thumbUrl?`<img src="${escAttr(d.thumbUrl)}" style="width:80px;height:45px;object-fit:cover;border-radius:5px;display:block" loading="lazy"/>`:''}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.28);border-radius:5px;pointer-events:none">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
       <div style="min-width:0">
         ${d.title?`<div style="font-weight:650;font-size:13px;color:var(--ink);margin-bottom:3px">${esc(d.title)}</div>`:''}
         ${d.channel?`<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:4px">${esc(d.channel)}</div>`:''}
@@ -4721,9 +4735,16 @@ function renderUrlSuccessReport(d, url){
 
 function renderUrlAlgoReport(d, url){
   const totalW = d.algoFactors.reduce((s,f)=>s+f.w,0);
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(d.title||url)}`;
   return `<div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
-    <div style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink);display:flex;align-items:flex-start;gap:10px">
-      ${d.thumbUrl?`<img src="${escAttr(d.thumbUrl)}" style="width:80px;height:45px;object-fit:cover;border-radius:5px;flex:none" loading="lazy"/>`:''}
+    <div data-ytplay="${escAttr(d.ytId||'')}" data-title="${escAttr(d.title||url)}" data-channel="${escAttr(d.channel||'')}" data-searchurl="${escAttr(searchUrl)}"
+      style="padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:12.5px;color:var(--accent-ink);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:opacity .15s" title="클릭하면 재생">
+      <div style="position:relative;flex:none">
+        ${d.thumbUrl?`<img src="${escAttr(d.thumbUrl)}" style="width:80px;height:45px;object-fit:cover;border-radius:5px;display:block" loading="lazy"/>`:''}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.28);border-radius:5px;pointer-events:none">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
       <div style="min-width:0">
         ${d.title?`<div style="font-weight:650;font-size:13px;color:var(--ink);margin-bottom:3px">${esc(d.title)}</div>`:''}
         ${d.channel?`<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:4px">${esc(d.channel)}</div>`:''}
@@ -4971,6 +4992,19 @@ function bootstrap(){
     const v = VidRegistry[card.dataset.vplay];
     if (!v) return;
     openVidModal('summary', v);
+  }, { capture: true });
+
+  // URL preview card click → open YouTube player modal
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-vplay]') || e.target.closest('[data-va]')) return;
+    const card = e.target.closest('[data-ytplay]');
+    if (!card) return;
+    e.stopPropagation();
+    const ytId = card.dataset.ytplay || null;
+    const title = card.dataset.title || '동영상 재생';
+    const channel = card.dataset.channel || '';
+    const searchUrl = card.dataset.searchurl || `https://www.youtube.com/results?search_query=${encodeURIComponent(title)}`;
+    VidModal.open(title, channel, '', ytId || null, ytId ? null : searchUrl);
   }, { capture: true });
 
   // ESC key closes modal
