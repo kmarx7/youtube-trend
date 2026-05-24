@@ -457,8 +457,8 @@
 
   /* ── 콘텐츠 아이디어 생성기 ── */
   .idea-kw-form{display:flex;gap:8px;margin-bottom:22px}
-  .idea-title-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:flex-start;gap:12px;transition:border-color .14s,box-shadow .14s;cursor:default}
-  .idea-title-card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+  .idea-title-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:flex-start;gap:12px;transition:border-color .14s,box-shadow .14s,background .14s;cursor:pointer}
+  .idea-title-card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm);background:var(--accent-soft)}
   .idea-title-num{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
   .idea-title-text{font-size:14px;font-weight:650;line-height:1.45;flex:1}
   .idea-title-why{font-size:11.5px;color:var(--ink-3);margin-top:4px}
@@ -867,9 +867,9 @@ const API = (() => {
     return res.json();
   }
 
-  async function _ytSearchVideos(keyword, catId, region, key, maxResults=10){
+  async function _ytSearchVideos(keyword, catId, region, key, maxResults=12){
     // Search-based fallback: get video IDs then fetch full details
-    const sq = `search?part=snippet&type=video&q=${encodeURIComponent(keyword)}&regionCode=${region}&maxResults=${maxResults}&order=viewCount${catId?'&videoCategoryId='+catId:''}`;
+    const sq = `search?part=snippet&type=video&q=${encodeURIComponent(keyword)}&regionCode=${region}&maxResults=${maxResults}&order=relevance${catId?'&videoCategoryId='+catId:''}`;
     const sJson = await ytFetch(sq, key);
     const ids = (sJson.items||[]).map(i=>i.id?.videoId).filter(Boolean).join(',');
     if (!ids) return [];
@@ -878,8 +878,9 @@ const API = (() => {
   }
 
   const CAT_KEYWORDS = {
-    '27':'교육 학습 강의','19':'여행 브이로그','15':'반려동물 강아지','17':'스포츠 운동',
-    '2':'자동차 드라이브','10':'음악 노래','20':'게임 플레이','26':'뷰티 메이크업'
+    '27':'공부 교육','19':'여행 브이로그','15':'강아지 고양이','17':'운동 헬스',
+    '2':'자동차','10':'음악','20':'게임','26':'뷰티 메이크업','22':'요리 레시피',
+    '25':'경제 재테크','24':'예능 오락','28':'과학 기술'
   };
 
   async function _fetchYouTubeTrending(opts){
@@ -892,11 +893,16 @@ const API = (() => {
       const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&maxResults=50${catId?'&videoCategoryId='+catId:''}`;
       const json = await ytFetch(params, cfg.youtubeApiKey);
       let videos = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
-      // Fallback: mostPopular chart returns 0 for some categories (edu, travel, etc.) → use search
+      // Fallback cascade for categories where mostPopular returns nothing
       if (catId && videos.length === 0){
         const kw = CAT_KEYWORDS[catId] || '';
-        videos = await _ytSearchVideos(kw, catId, region, cfg.youtubeApiKey, 20).catch(()=>[]);
-        if (!videos.length) videos = await _ytSearchVideos(kw, '', region, cfg.youtubeApiKey, 20).catch(()=>[]);
+        const catObj = CATS_LOOKUP.find(c=>APP_TO_YT[c.id]===catId);
+        // Stage 1: search with keyword + category filter
+        if (kw) videos = await _ytSearchVideos(kw, catId, region, cfg.youtubeApiKey, 20).catch(()=>[]);
+        // Stage 2: search with keyword, no category filter
+        if (!videos.length && kw) videos = await _ytSearchVideos(kw, '', region, cfg.youtubeApiKey, 20).catch(()=>[]);
+        // Stage 3: search by Korean category name
+        if (!videos.length && catObj) videos = await _ytSearchVideos(catObj.name, '', region, cfg.youtubeApiKey, 20).catch(()=>[]);
       }
       return videos;
     });
@@ -911,18 +917,27 @@ const API = (() => {
       const cats = CATS_LOOKUP.filter(c=>APP_TO_YT[c.id]);
       const results = await Promise.allSettled(cats.map(async c => {
         const ytCatId = APP_TO_YT[c.id];
-        const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&videoCategoryId=${ytCatId}&maxResults=10`;
-        const json = await ytFetch(params, cfg.youtubeApiKey);
+        const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&videoCategoryId=${ytCatId}&maxResults=12`;
+        const json = await ytFetch(params, cfg.youtubeApiKey).catch(()=>({items:[]}));
         let vids = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
-        // Fallback: use search when mostPopular returns nothing for this category
         if (vids.length === 0){
+          // Fallback 1: search with category keyword + categoryId filter
           const kw = CAT_KEYWORDS[ytCatId] || c.name;
-          vids = await _ytSearchVideos(kw, ytCatId, region, cfg.youtubeApiKey, 10).catch(()=>[]);
-          if (!vids.length) vids = await _ytSearchVideos(kw, '', region, cfg.youtubeApiKey, 10).catch(()=>[]);
+          vids = await _ytSearchVideos(kw, ytCatId, region, cfg.youtubeApiKey, 12).catch(()=>[]);
+        }
+        if (vids.length === 0){
+          // Fallback 2: search keyword only (no category filter)
+          const kw = CAT_KEYWORDS[ytCatId] || c.name;
+          vids = await _ytSearchVideos(kw, '', region, cfg.youtubeApiKey, 12).catch(()=>[]);
+        }
+        if (vids.length === 0){
+          // Fallback 3: search by Korean category name only
+          vids = await _ytSearchVideos(c.name, '', region, cfg.youtubeApiKey, 12).catch(()=>[]);
         }
         return { category:c, videos:vids };
       }));
-      return results.filter(r=>r.status==='fulfilled'&&r.value.videos.length).map(r=>r.value);
+      // Return all categories that succeeded (empty ones will be filled by mock in trendingByCategory)
+      return results.filter(r=>r.status==='fulfilled').map(r=>r.value);
     });
   }
 
@@ -984,14 +999,22 @@ const API = (() => {
 
     async trendingByCategory(opts){
       const cfg = SettingsCfg.load();
+      const mockAll = Gen.trendingByCategory(opts);
       if (cfg.useReal && cfg.youtubeApiKey){
         try {
           const real = await _fetchYouTubeTrendingByCategory(opts);
-          if (real && real.length) return real;
+          if (real && real.length){
+            // Merge: use real data where available, fill missing/empty categories with mock
+            const realMap = new Map(real.map(g=>[g.category.id, g]));
+            return mockAll.map(mg => {
+              const rg = realMap.get(mg.category.id);
+              return (rg && rg.videos.length) ? rg : mg;
+            });
+          }
         } catch(e){ toast('YouTube API 오류: '+e.message); }
       }
       await wait(120);
-      return Gen.trendingByCategory(opts);
+      return mockAll;
     },
 
     async countries(){
@@ -1270,6 +1293,14 @@ const API = (() => {
       } catch(e){ return null; }
     },
 
+    /* ── 제목 아이디어 시놉시스 ── */
+    async titleSynopsis(keyword, titleText){
+      return this._ai(
+        '유튜브 콘텐츠 기획 전문가. 반드시 유효한 JSON만 출력.',
+        `키워드: "${keyword}", 제목 아이디어: "${titleText}"\n\n이 제목으로 제작할 유튜브 영상의 시놉시스를 작성하세요.\n한국어 (JSON):\n{"hook":"시청자를 사로잡는 오프닝 아이디어 2문장","outline":["섹션 1: 소제목과 내용 개요","섹션 2","섹션 3","섹션 4"],"highlight":"이 영상의 핵심 하이라이트 장면 1문장","cta":"구독 유도 CTA 문구","duration":"예상 영상 길이 (예: 8~12분)","tips":"제작 시 주의할 점 1가지"}`
+      );
+    },
+
     /* ── 수익화 상위 채널 ── */
     async topRevenueChannels(category){
       const cfg = SettingsCfg.load();
@@ -1416,7 +1447,15 @@ const API = (() => {
       } catch(e){ return null; }
     },
 
-    async relatedVideos(keyword, n){ await wait(120); return Gen.relatedVideos(keyword, n||10); },
+    async relatedVideos(keyword, n){
+      const cfg = SettingsCfg.load();
+      if (cfg.useReal && cfg.youtubeApiKey){
+        const real = await this.searchKeywordVideos(keyword, n||12);
+        if (real.length) return real;
+      }
+      await wait(120);
+      return Gen.relatedVideos(keyword, n||12);
+    },
     async success(region){ await wait(140); return Gen.success(region); },
     async algorithm(){ await wait(120); return Gen.algorithm(); },
 
@@ -1670,7 +1709,7 @@ const Gen = (() => {
         rows.push(makeVideo(seedBase+':'+i, { category:c.id, boost }));
       }
       rows.sort((a,b)=>b.score-a.score);
-      return { category:c, videos: rows.slice(0,10).map((v,i)=>({...v, rank:i+1})) };
+      return { category:c, videos: rows.slice(0,12).map((v,i)=>({...v, rank:i+1})) };
     });
   }
 
@@ -2081,7 +2120,7 @@ async function renderHome(){
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
       </form>
-      <div class="hero__sugs">
+      <div class="hero__sugs" id="heroSugs">
         <span>추천 :</span>
         ${['미니멀 캠핑','하루 한 끼 단백질','로컬 디저트','자취 인테리어','월배당 포트폴리오'].map(k=>`<button data-sug="${escAttr(k)}">${esc(k)}</button>`).join('')}
       </div>
@@ -2169,6 +2208,30 @@ async function renderHome(){
       aiSectionShow('aiHome', '오늘의 AI 트렌드 브리핑', aiHomeBriefingHtml(d))
     );
   }
+
+  // 실시간 트렌딩 키워드로 추천 단어 비동기 업데이트
+  {
+    const cfg2 = SettingsCfg.load();
+    if (cfg2.useReal && cfg2.youtubeApiKey){
+      fetchRealTrendingTopics(App.region).then(topics => {
+        const sugsEl = document.getElementById('heroSugs');
+        if (!sugsEl) return;
+        const kws = topics.slice(0, 5).map(t => {
+          const words = (t.keyword||'').trim().split(/\s+/);
+          return words.slice(0, 3).join(' ');
+        }).filter(Boolean);
+        if (!kws.length) return;
+        sugsEl.querySelectorAll('button').forEach(b => b.remove());
+        kws.forEach(kw => {
+          const btn = document.createElement('button');
+          btn.dataset.sug = kw;
+          btn.textContent = kw;
+          btn.addEventListener('click', () => App.analyzeAndShow(kw));
+          sugsEl.appendChild(btn);
+        });
+      }).catch(() => {});
+    }
+  }
 }
 
 function statCard(label, value, meta){
@@ -2185,7 +2248,7 @@ async function renderTrending(){
     <div class="page-head">
       <div>
         <h1>${regionName} 급상승 동영상</h1>
-        <p>분야별 가능성 점수 상위 10개씩. 모든 수치는 가상 추정입니다.</p>
+        <p>분야별 가능성 점수 상위 12개씩. 모든 수치는 가상 추정입니다.</p>
       </div>
       <div class="page-head__actions">
         <div class="tabs" id="winTabs">
@@ -2214,7 +2277,7 @@ async function renderTrending(){
       <section class="cat-sec">
         <div class="cat-sec__hd">
           <h2 class="cat-sec__t">${g.category.name}</h2>
-          <span class="cat-sec__sub">상위 10개 · 가능성 점수 기준</span>
+          <span class="cat-sec__sub">상위 12개 · 가능성 점수 기준</span>
           <div class="cat-sec__more"><button class="btn btn--sm" data-cat-jump="${g.category.id}">이 분야만 보기</button></div>
         </div>
         <div class="vid-grid">
@@ -2232,10 +2295,10 @@ async function renderTrending(){
     body.innerHTML = `
       <section class="cat-sec">
         <div class="cat-sec__hd">
-          <h2 class="cat-sec__t">${cat?cat.name:''} · 상위 10개</h2>
+          <h2 class="cat-sec__t">${cat?cat.name:''} · 상위 12개</h2>
           <span class="cat-sec__sub">${regionName} · 가능성 점수 기준</span>
         </div>
-        <div class="vid-grid">${rows.slice(0,10).map(v => videoCard(v, { rank: v.rank })).join('')}</div>
+        <div class="vid-grid">${rows.slice(0,12).map(v => videoCard(v, { rank: v.rank })).join('')}</div>
       </section>
 
       <section class="cat-sec">
@@ -2243,7 +2306,7 @@ async function renderTrending(){
           <h2 class="cat-sec__t">상세 지표</h2>
           <span class="cat-sec__sub">CTR·유지율 추정 포함</span>
         </div>
-        <div class="vid-list">${rows.slice(0,10).map(videoRow).join('')}</div>
+        <div class="vid-list">${rows.slice(0,12).map(videoRow).join('')}</div>
       </section>
     `;
   }
@@ -2572,14 +2635,14 @@ async function renderAnalysis(){
       </div>
     </div>
 
-    <!-- 관련 유튜브 영상 10개 -->
+    <!-- 관련 유튜브 영상 12개 -->
     <div class="card">
       <div class="card__hd">
         <h3>'${esc(a.keyword)}' 관련 유튜브 영상</h3>
-        <span class="muted">분석에 도움이 될 만한 영상 10개 · 카드를 누르면 해당 영상 주제로 다시 분석합니다</span>
+        <span class="muted">분석에 도움이 될 만한 영상 12개 · 카드를 누르면 해당 영상 주제로 다시 분석합니다</span>
       </div>
       <div id="relVidGrid" class="vid-grid">
-        ${Array.from({length:10}).map(()=>`<div><div class="skeleton" style="aspect-ratio:16/9; border-radius:10px"></div><div class="skeleton" style="height:14px; margin-top:8px; width:80%"></div><div class="skeleton" style="height:12px; margin-top:6px; width:60%"></div></div>`).join('')}
+        ${Array.from({length:12}).map(()=>`<div><div class="skeleton" style="aspect-ratio:16/9; border-radius:10px"></div><div class="skeleton" style="height:14px; margin-top:8px; width:80%"></div><div class="skeleton" style="height:12px; margin-top:6px; width:60%"></div></div>`).join('')}
       </div>
     </div>
   `;
@@ -2600,7 +2663,7 @@ async function renderAnalysis(){
   }
 
   const [rel, aiData, newsData] = await Promise.all([
-    API.relatedVideos(a.keyword, 10),
+    API.relatedVideos(a.keyword, 12),
     API.aiInsight(a.keyword, a),
     API.keywordNews(a.keyword)
   ]);
@@ -3391,7 +3454,7 @@ function renderIdeas(){
 
     // Fetch real trending videos for keyword in parallel with mock data
     const [realVideos, data] = await Promise.all([
-      API.searchKeywordVideos(kw, 10),
+      API.searchKeywordVideos(kw, 12),
       API.contentIdeas(kw)
     ]);
     const hasReal = realVideos.length > 0;
@@ -3412,15 +3475,16 @@ function renderIdeas(){
       ${videoSection}
       <div class="grid-2-eq" style="margin-bottom:18px">
         <div class="card">
-          <div class="card__hd"><h3>제목 아이디어 5선</h3><span class="muted">클릭률 관점 추정</span></div>
+          <div class="card__hd"><h3>제목 아이디어 5선</h3><span class="muted">클릭하면 시놉시스 생성</span></div>
           <div style="display:flex;flex-direction:column;gap:8px">
             ${data.titles.map((t,i)=>`
               <div class="idea-title-card">
                 <div class="idea-title-num">${i+1}</div>
-                <div>
+                <div style="flex:1">
                   <div class="idea-title-text">${esc(t.text)}</div>
                   <div class="idea-title-why">${esc(t.why)}</div>
                 </div>
+                <div style="flex:none;font-size:10px;color:var(--accent-ink);opacity:.6;white-space:nowrap;margin-top:2px">📝 시놉시스</div>
               </div>`).join('')}
           </div>
         </div>
@@ -3452,6 +3516,41 @@ function renderIdeas(){
       </div>
       ${aiSectionSkeleton('ideaAi')}
     `;
+
+    // 제목 아이디어 카드 클릭 → 시놉시스 생성
+    el.querySelectorAll('.idea-title-card').forEach((card, i) => {
+      card.style.cursor = 'pointer';
+      card.title = '클릭하면 이 제목으로 영상 시놉시스를 생성합니다';
+      card.addEventListener('click', async () => {
+        const titleText = data.titles[i]?.text;
+        if (!titleText) return;
+        const cfg2 = SettingsCfg.load();
+        if (!cfg2.aiApiKey) { toast('AI API 키를 설정하세요 (설정 메뉴)'); return; }
+        VidModal.open('📝 시놉시스 생성 중…', titleText,
+          '<div class="skeleton" style="height:240px;border-radius:12px;margin:8px 0"></div>');
+        const syn = await API.titleSynopsis(kw, titleText);
+        if (!syn){
+          VidModal.setBody('<div style="color:var(--ink-3);padding:16px;font-size:13px">시놉시스를 생성하지 못했습니다. API 키를 확인해주세요.</div>');
+          return;
+        }
+        VidModal.setTitle('📝 ' + titleText);
+        VidModal.setBody(`
+          <div style="padding:4px 0;line-height:1.7">
+            <div style="margin-bottom:16px;padding:12px 14px;background:var(--accent-soft);border-radius:10px;font-size:13.5px;color:var(--accent-ink)">${esc(syn.hook||'')}</div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;margin-bottom:8px">구성 개요</div>
+              ${(syn.outline||[]).map((s,j)=>`<div style="padding:8px 12px;margin-bottom:6px;border-left:3px solid var(--accent);background:var(--bg-sunken);border-radius:0 8px 8px 0;font-size:13px"><b>${j+1}.</b> ${esc(s)}</div>`).join('')}
+            </div>
+            ${syn.highlight?`<div style="margin-bottom:10px;font-size:13px;color:var(--ink-2)"><b>🎬 하이라이트:</b> ${esc(syn.highlight)}</div>`:''}
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+              ${syn.duration?`<span class="chip chip--accent">⏱ ${esc(syn.duration)}</span>`:''}
+              ${syn.cta?`<div style="font-size:12.5px;color:var(--ink-3);padding:6px 10px;background:var(--bg-sunken);border-radius:8px;font-style:italic">"${esc(syn.cta)}"</div>`:''}
+            </div>
+            ${syn.tips?`<div style="font-size:12.5px;color:var(--ink-3);padding:10px 12px;border:1px solid var(--line);border-radius:8px">💡 ${esc(syn.tips)}</div>`:''}
+          </div>
+        `);
+      });
+    });
 
     // AI analysis based on real videos (or fallback)
     const aiPromise = hasReal
@@ -3583,12 +3682,24 @@ async function renderMonitor(){
         </div>`).join('');
       keywords.forEach(async (kw) => {
         const id = 'mrpt_'+Gen.hash('mrpt:'+kw).toString(36);
-        const report = await API.monitorReport(kw);
+        const vidGridId = 'mrvid_'+Gen.hash('mrvid:'+kw).toString(36);
+        const [report, monVideos] = await Promise.all([
+          API.monitorReport(kw),
+          API.searchKeywordVideos(kw, 6)
+        ]);
         const el2 = document.getElementById(id);
         if (!el2) return;
-        if (!report){ el2.style.display='none'; return; }
-        const statusColor = report.status==='급상승'?'oklch(0.52 0.14 155)':report.status==='상승세'?'oklch(0.55 0.15 255)':report.status==='하락'?'oklch(0.6 0.18 25)':'var(--ink-4)';
+        if (!report && !monVideos.length){ el2.style.display='none'; return; }
+        const statusColor = report?.status==='급상승'?'oklch(0.52 0.14 155)':report?.status==='상승세'?'oklch(0.55 0.15 255)':report?.status==='하락'?'oklch(0.6 0.18 25)':'var(--ink-4)';
+        const videoGridHtml = monVideos.length ? `
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-4);text-transform:uppercase;margin-bottom:10px">급상승 관련 동영상 · 클릭하면 재생</div>
+            <div id="${vidGridId}" class="vid-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+              ${monVideos.map(v=>videoCard(v,{})).join('')}
+            </div>
+          </div>` : '';
         el2.querySelector('.skeleton').outerHTML = `
+          ${report ? `
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <span class="chip" style="background:${statusColor};color:#fff;font-size:11px;font-weight:700">${esc(report.status||'—')}</span>
           </div>
@@ -3598,7 +3709,8 @@ async function renderMonitor(){
           </div>
           <div style="font-size:12.5px;background:var(--accent-soft);color:var(--accent-ink);padding:10px 12px;border-radius:8px;line-height:1.5">
             💡 ${esc(report.recommendation||'')}
-          </div>`;
+          </div>` : ''}
+          ${videoGridHtml}`;
       });
     }
   }
@@ -4017,6 +4129,8 @@ const VidModal = {
     document.getElementById('vidModal').classList.add('is-open');
     document.body.style.overflow='hidden';
   },
+  setTitle(title){ document.getElementById('modalTitle').textContent = title; },
+  setBody(html){ document.getElementById('modalBody').innerHTML = html; },
   close(){
     // Stop video before hiding — clears iframe src so audio stops immediately
     const iframe = document.querySelector('#modalBody iframe');
