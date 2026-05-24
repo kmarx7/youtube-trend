@@ -384,11 +384,53 @@
     .vid-row{grid-template-columns: 1fr}
     .vid-row__thumb{width:100%; max-width:none}
     .vid-row__rk{display:none}
+    .vid-grid{grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:12px}
+    .cmp-table{display:block; overflow-x:auto; -webkit-overflow-scrolling:touch}
+    .grid-2,.grid-2-eq{grid-template-columns:1fr}
+    .stats{grid-template-columns: repeat(2,1fr)}
+    .heatmap{overflow-x:auto}
+    .forecast-stats{grid-template-columns:repeat(3,1fr)}
+    .topic-grid{grid-template-columns: repeat(auto-fill, minmax(240px,1fr))}
+    .idea-kw-form{flex-wrap:wrap}
+    .tabs{flex-wrap:wrap; gap:4px}
+    .modal-box{border-radius:var(--r-lg) var(--r-lg) 0 0; margin-top:auto; max-height:95vh}
+    .modal-bg{align-items:flex-end; padding:0}
   }
   @media (max-width: 480px){
     .stats{grid-template-columns: 1fr 1fr}
     .scores{grid-template-columns: 1fr 1fr}
     .res-head__kw{font-size:24px}
+    .vid-grid{grid-template-columns: repeat(2, 1fr); gap:10px}
+    .main{padding:12px 10px 56px}
+    .card{padding:14px}
+    .page-head h1{font-size:17px}
+    .page-head p{font-size:12px}
+    .hd__search input{font-size:12px}
+    .tabs{gap:4px}
+    .tab{font-size:12px;padding:6px 10px}
+    .modal-bd{padding:14px 14px 18px}
+    .modal-hd{padding:14px 16px 12px}
+    .scores{grid-template-columns:1fr 1fr}
+    .forecast-stats{grid-template-columns:1fr}
+    .hist-card__scores{grid-template-columns:repeat(2,1fr)}
+    .heatmap{overflow-x:auto}
+    .idea-kw-form{flex-direction:column}
+    .idea-kw-form button{width:100%}
+    .page-head__actions{margin-left:0;width:100%}
+    .page-head__actions .btn{font-size:12px;padding:0 10px;height:32px}
+    .res-head{flex-direction:column;gap:14px}
+    .res-head__score{width:100%;border-left:0;padding-left:0;border-top:1px dashed var(--line);padding-top:14px;display:flex;align-items:center;gap:12px}
+    .factor{grid-template-columns:1fr}
+    .factor__val{font-size:18px}
+    .topic-grid{grid-template-columns:1fr}
+    .ctry-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+    .ctry-card{padding:10px 12px}
+    .cmp-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  }
+  @media (max-width: 380px){
+    .vid-grid{grid-template-columns:1fr}
+    .ctry-grid{grid-template-columns:1fr}
+    .scores{grid-template-columns:1fr}
   }
   /* Vid action bar */
   .vid-actions{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px 12px;border-top:1px solid var(--line);background:var(--bg-sunken)}
@@ -825,6 +867,21 @@ const API = (() => {
     return res.json();
   }
 
+  async function _ytSearchVideos(keyword, catId, region, key, maxResults=10){
+    // Search-based fallback: get video IDs then fetch full details
+    const sq = `search?part=snippet&type=video&q=${encodeURIComponent(keyword)}&regionCode=${region}&maxResults=${maxResults}&order=viewCount${catId?'&videoCategoryId='+catId:''}`;
+    const sJson = await ytFetch(sq, key);
+    const ids = (sJson.items||[]).map(i=>i.id?.videoId).filter(Boolean).join(',');
+    if (!ids) return [];
+    const vJson = await ytFetch(`videos?part=snippet,statistics,contentDetails&id=${ids}`, key);
+    return (vJson.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+  }
+
+  const CAT_KEYWORDS = {
+    '27':'교육 학습 강의','19':'여행 브이로그','15':'반려동물 강아지','17':'스포츠 운동',
+    '2':'자동차 드라이브','10':'음악 노래','20':'게임 플레이','26':'뷰티 메이크업'
+  };
+
   async function _fetchYouTubeTrending(opts){
     const cfg = SettingsCfg.load();
     if (!cfg.useReal || !cfg.youtubeApiKey) return null;
@@ -834,7 +891,14 @@ const API = (() => {
     return cacheFetch(cacheKey, async () => {
       const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&maxResults=50${catId?'&videoCategoryId='+catId:''}`;
       const json = await ytFetch(params, cfg.youtubeApiKey);
-      return (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+      let videos = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+      // Fallback: mostPopular chart returns 0 for some categories (edu, travel, etc.) → use search
+      if (catId && videos.length === 0){
+        const kw = CAT_KEYWORDS[catId] || '';
+        videos = await _ytSearchVideos(kw, catId, region, cfg.youtubeApiKey, 20).catch(()=>[]);
+        if (!videos.length) videos = await _ytSearchVideos(kw, '', region, cfg.youtubeApiKey, 20).catch(()=>[]);
+      }
+      return videos;
     });
   }
 
@@ -849,7 +913,13 @@ const API = (() => {
         const ytCatId = APP_TO_YT[c.id];
         const params = `videos?part=snippet,statistics,contentDetails&chart=mostPopular&regionCode=${region}&videoCategoryId=${ytCatId}&maxResults=10`;
         const json = await ytFetch(params, cfg.youtubeApiKey);
-        const vids = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+        let vids = (json.items||[]).map((item,i)=>ytItemToVideo(item,i+1));
+        // Fallback: use search when mostPopular returns nothing for this category
+        if (vids.length === 0){
+          const kw = CAT_KEYWORDS[ytCatId] || c.name;
+          vids = await _ytSearchVideos(kw, ytCatId, region, cfg.youtubeApiKey, 10).catch(()=>[]);
+          if (!vids.length) vids = await _ytSearchVideos(kw, '', region, cfg.youtubeApiKey, 10).catch(()=>[]);
+        }
         return { category:c, videos:vids };
       }));
       return results.filter(r=>r.status==='fulfilled'&&r.value.videos.length).map(r=>r.value);
@@ -2379,9 +2449,8 @@ async function renderAnalysis(){
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:18px;padding:12px 16px">
+    <div class="card" style="margin-bottom:18px;padding:10px 14px">
       <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:12px;color:var(--ink-3);white-space:nowrap;flex:none">새 키워드</span>
         <input id="newKwInput" class="field__input" style="flex:1;height:38px;font-size:13.5px;font-family:var(--font);padding:0 10px" placeholder="다른 키워드 분석…" autocomplete="off"/>
         <button class="btn btn--primary" id="newKwBtn" style="height:38px;padding:0 16px;white-space:nowrap;flex:none">분석</button>
       </div>
