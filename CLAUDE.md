@@ -1,8 +1,8 @@
-# YouTube Trend Report — CLAUDE.md
+# TubeTrend — CLAUDE.md
 
 ## 프로젝트 개요
 
-- **서비스명**: YouTube Trend Report (유튜브 트렌드 분석)
+- **서비스명**: TubeTrend (유튜브 트렌드 분석)
 - **목적**: 유튜브 크리에이터를 위한 트렌드 분석 · 키워드 리서치 · 채널 최적화 SPA
 - **대상**: 한국어 사용자 (UI 전체 한국어)
 - **배포**: GitHub → `https://github.com/kmarx7/youtube-trend`

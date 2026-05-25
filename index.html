@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SignalMap AI — 유튜브 트렌드 시그널</title>
+<title>TubeTrend — 유튜브 트렌드 분석</title>
 <style>
   /* =========================================================
      Design tokens (자체 디자인 시스템 — 외부 브랜드 비참조)
@@ -580,7 +580,7 @@
     <div class="sb__brand" style="cursor:pointer" id="brandBtn">
       <div class="sb__mark" aria-hidden="true"></div>
       <div>
-        <div class="sb__title">YouTube Trend Report</div>
+        <div class="sb__title">TubeTrend</div>
         <div class="sb__sub">유튜브 트렌드 분석</div>
       </div>
     </div>
@@ -714,7 +714,7 @@
 
 <script>
 /* =============================================================
-   SignalMap AI — 유튜브 트렌드 시그널 MVP
+   TubeTrend — 유튜브 트렌드 분석
    ──────────────────────────────────────────────────────────────
    레이어:
      Store     localStorage (히스토리·국가·API 설정)
@@ -727,7 +727,7 @@
 
 /* ───────── Store ───────── */
 const Store = {
-  ns: 'signalmap.v3.',
+  ns: 'tubetrend.v3.',
   read(k, def){ try{ const v = localStorage.getItem(this.ns+k); return v ? JSON.parse(v) : def; }catch(e){ return def; } },
   write(k, v){ try{ localStorage.setItem(this.ns+k, JSON.stringify(v)); }catch(e){} }
 };
@@ -3658,7 +3658,7 @@ function renderIdeas(){
 
 /* ── 트렌드 모니터링 ── */
 const MonitorStore = {
-  KEY: 'signalmap.v1.monitor',
+  KEY: 'tubetrend.v1.monitor',
   load(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'[]'); }catch{ return []; } },
   save(list){ localStorage.setItem(this.KEY, JSON.stringify(list)); },
   add(kw){ const list=this.load(); if(!list.includes(kw)&&list.length<10){ list.push(kw); this.save(list); } },
